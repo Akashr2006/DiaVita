@@ -8,6 +8,13 @@ import Photo from '@/components/Photo';
 import { Alert } from '@/components/ui';
 import { api, setToken } from '@/lib/api';
 
+// Dummy patients created by `npm run db:seed` in the backend (password demo1234), for demos and reviews
+const DEMO_PATIENTS = [
+  ['Ravi Kumar', 'demo@diavita.app', 'Type 2'], ['Lakshmi Narayanan', 'lakshmi@diavita.app', 'Type 2'],
+  ['Arjun Mehta', 'arjun@diavita.app', 'Type 1'], ['Fathima Begum', 'fathima@diavita.app', 'Pre-diabetes'],
+  ['Suresh Babu', 'suresh@diavita.app', 'Type 2'], ['Priya Sharma', 'priya@diavita.app', 'Gestational'],
+];
+
 export default function AuthForm({ mode }) {
   const router = useRouter();
   const isRegister = mode === 'register';
@@ -110,6 +117,22 @@ export default function AuthForm({ mode }) {
               {isRegister ? 'Log in' : 'Create one'}
             </Link>
           </p>
+
+          {!isRegister && (
+            <div className="mt-8 rounded-[20px] border border-line bg-white p-4">
+              <div className="eyebrow text-muted">Demo patients</div>
+              <p className="mt-1 text-xs text-muted">Tap a patient to fill in their login.</p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {DEMO_PATIENTS.map(([name, email, type]) => (
+                  <button key={email} type="button" onClick={() => setForm({ ...form, email, password: 'demo1234' })}
+                    className={`rounded-[10px] px-3 py-2 text-left ring-1 transition ${form.email === email ? 'bg-sky ring-aqua' : 'bg-soft ring-line hover:ring-aqua'}`}>
+                    <div className="truncate text-sm font-semibold text-ink">{name}</div>
+                    <div className="text-[11px] text-muted">{type}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </main>

@@ -103,7 +103,7 @@ export default function VoiceEntry({ onSaved }) {
       return;
     }
     try {
-      const res = await api('/glucose', { method: 'POST', body: { value, context, note: `Voice: ${text}` } });
+      const res = await api('/glucose', { method: 'POST', body: { value, context, note: `Voice: ${text}`, source: 'voice' } });
       const tone = value < 70 ? words.low : value > 180 ? words.high : words.ok;
       say(`${words.saved(value)} ${tone}`);
       setResult({ ok: true, text: `Saved ${value} mg/dL · ${CONTEXT_WORDS[context]}` });

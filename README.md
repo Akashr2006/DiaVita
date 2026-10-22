@@ -73,18 +73,37 @@ The design uses the "Charming seaside" palette (`#B3EBF2`, `#85D1DB`, `#B6F2D1`,
 `frontend/app/globals.css`. Photos in `frontend/public/photos/` are third-party images kept out of this
 repository; without them the app shows soft palette tiles in their place.
 
-## Quick start on this laptop (no Neon needed)
+## Quick start on this laptop
 
-Double-click **`START-DIAVITA.bat`**. It opens 3 windows (database, API, website) and then the browser.
-It uses a local PostgreSQL database saved in `backend/.localdb`.
+Double-click **`START-DIAVITA.bat`**. It opens the API and website windows and then the browser.
+The live data is in a **Neon** cloud database (project `diavita`, region Singapore). If `backend/.env`
+points to the local database instead, the launcher also starts it (saved in `backend/.localdb`).
 
-**Demo login** (already loaded with 14 days of data): email `demo@diavita.app`, password `demo1234`.
+### Demo patients
+`npm run db:seed` (in `backend`) creates six dummy patients, each with 14 days of glucose readings, meals,
+walks and medicines. Every patient reacts to food differently, so each Food Fingerprint is different.
+All of them use the password `demo1234`, and the login page lists them.
+
+| Patient | Email | Diabetes type |
+|---|---|---|
+| Ravi Kumar | `demo@diavita.app` | Type 2 |
+| Lakshmi Narayanan | `lakshmi@diavita.app` | Type 2 |
+| Arjun Mehta | `arjun@diavita.app` | Type 1 (insulin) |
+| Fathima Begum | `fathima@diavita.app` | Pre-diabetes |
+| Suresh Babu | `suresh@diavita.app` | Type 2 |
+| Priya Sharma | `priya@diavita.app` | Gestational |
 
 ## Setup with Neon (about 5 minutes)
 
 ### 1. Create the Neon database
-1. Sign in at https://console.neon.tech and create a project named `diavita`.
-2. Click **Connect**, choose **Node.js**, and copy the connection string (it ends with `?sslmode=require`).
+Either use the Neon CLI:
+```bash
+npx neonctl auth
+npx neonctl projects create --name diavita --region-id aws-ap-southeast-1 --database diavita
+npx neonctl connection-string --database-name diavita --pooled
+```
+or sign in at https://console.neon.tech, create a project named `diavita`, click **Connect** and copy the
+Node.js connection string. Use `sslmode=verify-full` in the URL.
 
 ### 2. Backend
 ```bash
@@ -92,6 +111,7 @@ cd backend
 cp .env.example .env        # then paste your Neon URL into DATABASE_URL
 npm install
 npm run db:migrate          # creates all tables + 31 foods
+npm run db:seed             # six demo patients with 14 days of data
 npm run dev                 # API on http://localhost:5000
 ```
 Check it at http://localhost:5000/api/health. It should say `"database":"connected"`.

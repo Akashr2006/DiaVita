@@ -25,8 +25,11 @@ CREATE TABLE IF NOT EXISTS glucose_readings (
   value_mgdl  NUMERIC(5,1) NOT NULL CHECK (value_mgdl BETWEEN 20 AND 600),
   context     VARCHAR(20) NOT NULL DEFAULT 'random', -- fasting | pre_meal | post_meal | bedtime | random
   note        TEXT,
+  source      VARCHAR(10) NOT NULL DEFAULT 'manual', -- manual (typed) | voice
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- databases created before the source column existed
+ALTER TABLE glucose_readings ADD COLUMN IF NOT EXISTS source VARCHAR(10) NOT NULL DEFAULT 'manual';
 CREATE INDEX IF NOT EXISTS idx_glucose_user_time ON glucose_readings(user_id, recorded_at DESC);
 
 CREATE TABLE IF NOT EXISTS foods (

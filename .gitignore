@@ -1,7 +1,8 @@
 node_modules
 .next
 .env
-.env.local
+.env.*
+!.env.example
 
 # local database created by `npm run db:local`
 .localdb

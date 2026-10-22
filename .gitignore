@@ -1,0 +1,15 @@
+node_modules
+.next
+.env
+.env.local
+
+# local database created by `npm run db:local`
+.localdb
+
+# submission documents are kept off the public repository
+/Report/
+/*.pptx
+/DiaVita_Second_Review.pdf
+
+# local tool settings
+.claude/

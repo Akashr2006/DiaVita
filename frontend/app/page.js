@@ -1,146 +1,228 @@
 import Link from 'next/link';
 import {
-  Activity, ArrowRight, Brain, Droplet, FileText, Fingerprint, Mic, Pill, ShieldCheck, Sparkles, Utensils, Gauge,
+  Activity, ArrowRight, Brain, ChartLine, Droplet, FileText, Fingerprint, Gauge, Languages, Mic, Pill, ShieldCheck,
+  Smartphone, Sparkles, Utensils,
 } from 'lucide-react';
-import Logo, { LogoMark } from '@/components/Logo';
+import Logo from '@/components/Logo';
+import Photo from '@/components/Photo';
+import Accordion from '@/components/Accordion';
+import { FAQ, SUGAR_RANGES } from '@/lib/help';
 
-const FEATURES = [
-  { icon: Droplet, title: 'Smart Glucose Log', text: 'Fasting, pre/post-meal and bedtime readings with instant hypo / hyper safety alerts.' },
-  { icon: Utensils, title: 'GI-based Smart Plate', text: 'Indian food library with Glycemic Index & Load. Get low-GI swap suggestions for every meal.' },
-  { icon: Activity, title: 'Activity Tracker', text: 'Log walks, yoga and workouts. Calories are estimated with MET values and your weight.' },
-  { icon: Pill, title: 'Medication Checklist', text: 'Daily tablet & insulin schedule with one-tap “taken” tracking and adherence score.' },
-  { icon: Gauge, title: 'DiaVita Score & eA1c', text: 'A single 0–100 lifestyle score plus estimated HbA1c and Time-in-Range from your readings.' },
-  { icon: ShieldCheck, title: 'IDRS Risk Check', text: 'Indian Diabetes Risk Score (MDRF) screening for family members in under a minute.' },
-  { icon: Brain, title: 'Personal Insights', text: 'Rule-based engine spots patterns like high post-meal sugar and tells you what to change.' },
-  { icon: FileText, title: 'Doctor Report', text: 'Printable 7 / 30-day summary of glucose, carbs and activity to share at consultations.' },
-];
+const TILES = ['bg-sky', 'bg-mint', 'bg-aqua/70', 'bg-ice'];
 
 const INNOVATIONS = [
-  { icon: Fingerprint, title: 'Food Fingerprint', text: 'Pairs every meal with your post-meal reading and learns which foods spike YOU — not the average person. Idli may spike you 40% more than its GI says.', tag: 'Personalised nutrition' },
-  { icon: Sparkles, title: 'Spike Predictor', text: 'Predicts your post-meal glucose before you eat, using a model fitted to your own data — and shows how much a 15-minute walk would lower it.', tag: 'Personal ML model' },
-  { icon: Mic, title: 'Voice in Tamil, Hindi & English', text: 'Say “சர்க்கரை 140 சாப்பிட்ட பின்” and it is logged. Results and low-sugar warnings are read aloud for elderly users.', tag: 'Inclusive by design' },
+  { icon: Fingerprint, photo: 'healthy-plate', label: 'Learns from you', title: 'Food Fingerprint', text: 'Matches each meal with your sugar reading after it and learns which foods raise your sugar more or less than expected.' },
+  { icon: Sparkles, photo: 'glucometer-high', label: 'Before you eat', title: 'Spike Predictor', text: 'Shows how high your sugar may go after a meal, before you eat it, and how much a 10, 15 or 30 minute walk lowers it.' },
+  { icon: Mic, photo: 'elder-glucometer', label: 'Tamil · Hindi · English', title: 'Voice entry', text: 'Say “sugar 140 after lunch” in your own language. The reading is saved and the result is read back aloud.' },
 ];
 
-const STACK = ['Next.js 15', 'React 19', 'Tailwind CSS', 'Node.js + Express', 'Neon Postgres', 'JWT Auth'];
+const FEATURES = [
+  { icon: Droplet, title: 'Sugar log', text: 'Fasting, before and after meal readings with instant low and high alerts.' },
+  { icon: Utensils, title: 'Smart Plate', text: 'Indian food list with carbs, calories and glycemic load for every meal.' },
+  { icon: Activity, title: 'Activity', text: 'Walks, yoga and exercise with calories burned and a daily goal.' },
+  { icon: Pill, title: 'Medicines', text: 'Daily tablet and insulin checklist with one-tap “taken”.' },
+  { icon: Gauge, title: 'DiaVita Score', text: 'One simple 0–100 score for the day, plus estimated HbA1c.' },
+  { icon: ShieldCheck, title: 'Risk check', text: 'Indian Diabetes Risk Score for family members in a minute.' },
+  { icon: Brain, title: 'Smart tips', text: 'Clear advice from your own data, such as walking after a heavy meal.' },
+  { icon: FileText, title: 'Doctor report', text: 'A 7, 14 or 30 day summary to print or save as PDF.' },
+];
+
+const HABITS = [
+  { photo: 'finger-prick', title: 'Check at the same times', text: 'Fasting, and two hours after your main meals.', big: true },
+  { photo: 'lemon-water', title: 'Drink enough water', text: 'Water helps your body when sugar runs high.' },
+  { photo: 'heart-workout', title: 'Move every day', text: '30 minutes of walking or yoga.' },
+  { photo: 'no-sugar', title: 'Cut added sugar', text: 'Tea, sweets and soft drinks add up fast.' },
+  { photo: 'work-kit', title: 'Carry your kit', text: 'Check at work or while travelling.' },
+];
+
+const STEPS = [
+  { icon: Droplet, title: 'Log', text: 'Add your sugar, meals, walks and medicines by typing or speaking.' },
+  { icon: ChartLine, title: 'Learn', text: 'DiaVita pairs meals with readings and finds your personal food pattern.' },
+  { icon: Sparkles, title: 'Improve', text: 'Get predictions and simple tips that fit your body, not the average.' },
+];
+
+function Heading({ eyebrow, title, text }) {
+  return (
+    <div className="max-w-[680px]">
+      <div className="eyebrow text-brand-700">{eyebrow}</div>
+      <h2 className="mt-2 text-[26px] font-bold leading-tight tracking-tight text-ink sm:text-[32px]">{title}</h2>
+      {text && <p className="mt-3 text-base text-muted">{text}</p>}
+    </div>
+  );
+}
 
 export default function Home() {
   return (
-    <main className="min-h-screen overflow-x-hidden">
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-brand-800 via-brand-700 to-brand-600 text-white">
-        <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-brand-400/30 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-rose-400/20 blur-3xl" />
-        <nav className="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
-          <Logo light />
+    <div className="min-h-screen overflow-x-hidden bg-page">
+      {/* Header: 64px */}
+      <header className="sticky top-0 z-30 border-b border-line bg-page/90 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-[1080px] items-center justify-between gap-3 px-4 sm:px-8 xl:px-0">
+          <Link href="/" aria-label="DiaVita home"><Logo /></Link>
+          <nav className="hidden items-center gap-1 md:flex">
+            {[['#innovation', 'Innovation'], ['#features', 'Features'], ['#how', 'How it works'], ['#help', 'Help']].map(([h, l]) => (
+              <a key={h} href={h} className="chip text-muted hover:bg-soft hover:text-ink">{l}</a>
+            ))}
+          </nav>
           <div className="flex items-center gap-2">
-            <Link href="/login" className="btn text-white/90 hover:bg-white/10">Log in</Link>
-            <Link href="/register" className="btn bg-white text-brand-800 hover:bg-brand-50">Get started</Link>
+            <Link href="/login" className="btn btn-plain btn-sm">Log in</Link>
+            <Link href="/register" className="btn btn-primary btn-sm">Get started</Link>
           </div>
-        </nav>
+        </div>
+      </header>
 
-        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-20 pt-8 sm:px-6 md:grid-cols-2 md:pt-14">
+      <main className="mx-auto flex max-w-[1080px] flex-col gap-16 px-4 pb-16 pt-10 sm:gap-20 sm:px-8 sm:pt-14 xl:px-0">
+        {/* Hero: 680px text column + 344px card */}
+        <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_344px] lg:gap-14">
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold ring-1 ring-white/20">
-              <Sparkles size={14} /> Diabetes Lifestyle Management App
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-mint px-2.5 py-1 text-xs font-semibold text-ink">
+              <Sparkles size={14} /> Diabetes lifestyle app, made for India
             </span>
-            <h1 className="mt-5 text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl">
-              Keep your sugar in the <span className="text-brand-200">sweet spot</span>, every day.
+            <h1 className="mt-5 text-[34px] font-bold leading-[1.15] tracking-tight text-ink sm:text-[48px]">
+              Know how <span className="rounded-lg bg-sky px-1.5">your</span> body reacts to food, and keep sugar in range.
             </h1>
-            <p className="mt-4 max-w-lg text-base text-brand-50/90 sm:text-lg">
-              DiaVita brings glucose, food, activity and medicines into one simple daily score — with smart,
-              India-first food insights that tell you exactly what to change.
+            <p className="mt-5 max-w-[560px] text-base text-muted sm:text-lg">
+              DiaVita brings sugar readings, meals, walks and medicines into one simple daily score, and learns
+              which foods raise your sugar the most.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/register" className="btn bg-white px-5 py-3 text-brand-800 hover:bg-brand-50">
-                Create free account <ArrowRight size={16} />
-              </Link>
-              <Link href="/login" className="btn px-5 py-3 text-white ring-1 ring-white/30 hover:bg-white/10">
-                I already have an account
-              </Link>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link href="/register" className="btn btn-primary px-5">Create free account <ArrowRight size={16} /></Link>
+              <Link href="/login" className="btn btn-soft px-5">I already have an account</Link>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
+              <span className="flex items-center gap-2"><Smartphone size={16} className="text-brand-600" /> Phone and laptop</span>
+              <span className="flex items-center gap-2"><Languages size={16} className="text-brand-600" /> English, தமிழ், हिंदी</span>
+              <span className="flex items-center gap-2"><Droplet size={16} className="text-brand-600" /> Works with any glucometer</span>
             </div>
           </div>
 
-          {/* Preview card */}
-          <div className="mx-auto w-full max-w-sm">
-            <div className="rounded-3xl bg-white/10 p-3 ring-1 ring-white/20 backdrop-blur">
-              <div className="rounded-2xl bg-white p-5 text-slate-900 shadow-2xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Today’s DiaVita Score</div>
-                    <div className="mt-1 text-4xl font-extrabold text-brand-700">82<span className="text-lg text-slate-400">/100</span></div>
-                  </div>
-                  <LogoMark size={52} />
-                </div>
-                <div className="mt-5 grid grid-cols-3 gap-2 text-center">
-                  {[['118', 'mg/dL', 'Latest'], ['6.4%', 'eA1c', '30 days'], ['78%', 'TIR', '7 days']].map(([v, u, l]) => (
-                    <div key={l} className="rounded-xl bg-brand-50 p-2.5">
-                      <div className="text-lg font-extrabold text-brand-800">{v}</div>
-                      <div className="text-[10px] font-semibold uppercase text-brand-700/70">{u}</div>
-                      <div className="text-[10px] text-slate-500">{l}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                  <b>Spike Predictor:</b> White rice + sambar → ~214 mg/dL for you. A 15-min walk → ~188.
+          <div className="card mx-auto w-full max-w-[344px] p-5">
+            <div className="relative aspect-square overflow-hidden rounded-xl">
+              <Photo name="checking-phone" eager />
+              <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-xl bg-white/90 px-3 py-2 shadow-sm backdrop-blur">
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-mint"><Droplet size={16} /></span>
+                <div className="leading-tight">
+                  <div className="text-sm font-semibold text-ink">118 mg/dL</div>
+                  <div className="text-[11px] text-muted">After lunch · in range</div>
                 </div>
               </div>
+            </div>
+            <div className="mt-5 flex items-center justify-between">
+              <div>
+                <div className="eyebrow text-muted">Today’s score</div>
+                <div className="text-[28px] font-bold text-ink">82<span className="text-base font-medium text-muted">/100</span></div>
+              </div>
+              <span className="rounded-md bg-mint px-2 py-1 text-xs font-semibold text-ink">In range 78%</span>
+            </div>
+            <div className="mt-3 rounded-[10px] bg-soft p-3 text-xs text-ink ring-1 ring-line">
+              <b>Spike Predictor:</b> rice + sambar → about 214 mg/dL. With a 15 minute walk → about 188.
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Innovation */}
-      <section className="mx-auto max-w-6xl px-4 pt-16 sm:px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-violet-700">What makes DiaVita different</span>
-          <h2 className="mt-4 text-3xl font-extrabold tracking-tight">Other apps store your data. DiaVita learns from it.</h2>
-          <p className="mt-3 text-slate-500">The same food raises sugar differently in different people. DiaVita discovers your personal pattern.</p>
-        </div>
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {INNOVATIONS.map(({ icon: Icon, title, text, tag }) => (
-            <div key={title} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 to-brand-700 p-6 text-white shadow-lg">
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15"><Icon size={24} /></div>
-              <div className="mt-4 text-xs font-bold uppercase tracking-wider text-white/70">{tag}</div>
-              <h3 className="mt-1 text-xl font-bold">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-white/85">{text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-extrabold tracking-tight">Everything a diabetic needs, in one place</h2>
-          <p className="mt-3 text-slate-500">Designed for patients, caregivers and doctors — works beautifully on phone and laptop.</p>
-        </div>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="card p-5 transition hover:-translate-y-0.5 hover:shadow-lg">
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-700">
-                <Icon size={22} />
+        {/* Innovation */}
+        <section id="innovation" className="flex scroll-mt-20 flex-col gap-8">
+          <Heading eyebrow="What makes DiaVita different" title="Other apps store your data. DiaVita learns from it."
+            text="The same food raises sugar differently in different people. DiaVita finds your personal pattern using only a normal glucometer." />
+          <div className="grid gap-4 md:grid-cols-3">
+            {INNOVATIONS.map(({ icon: Icon, photo, label, title, text }, i) => (
+              <div key={title} className="card flex flex-col p-3">
+                <div className="relative h-[180px] overflow-hidden rounded-xl">
+                  <Photo name={photo} />
+                  <div className={`absolute left-3 top-3 grid h-10 w-10 place-items-center rounded-xl text-ink shadow-sm ${TILES[i]}`}><Icon size={20} /></div>
+                </div>
+                <div className="px-2 pb-2 pt-4">
+                  <div className="eyebrow text-brand-700">{label}</div>
+                  <h3 className="mt-1 text-lg font-semibold text-ink">{title}</h3>
+                  <p className="mt-1.5 text-sm leading-6 text-muted">{text}</p>
+                </div>
               </div>
-              <h3 className="mt-4 font-bold">{title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Stack */}
-      <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
-        <div className="card flex flex-col items-center gap-4 p-6 text-center sm:p-8">
-          <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">Built with</div>
-          <div className="flex flex-wrap justify-center gap-2">
-            {STACK.map((s) => (
-              <span key={s} className="rounded-full bg-slate-100 px-3.5 py-1.5 text-sm font-semibold text-slate-700">{s}</span>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-slate-500 sm:flex-row sm:px-6">
+        {/* Features */}
+        <section id="features" className="flex scroll-mt-20 flex-col gap-8">
+          <Heading eyebrow="Features" title="Everything for daily diabetes care, in one place"
+            text="Built for patients, family members and doctors. Every page works the same on phone and laptop." />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {FEATURES.map(({ icon: Icon, title, text }, i) => (
+              <div key={title} className="card p-5">
+                <div className={`icon-tile h-10 w-10 ${TILES[i % 4]}`}><Icon size={20} /></div>
+                <h3 className="mt-4 text-base font-semibold text-ink">{title}</h3>
+                <p className="mt-1 text-[13px] leading-5 text-muted">{text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Daily habits: photo grid */}
+        <section id="habits" className="flex scroll-mt-20 flex-col gap-8">
+          <Heading eyebrow="Daily habits" title="Small habits that DiaVita helps you keep" />
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:grid-rows-[220px_220px]">
+            {HABITS.map(({ photo, title, text, big }) => (
+              <div key={title} className={`relative overflow-hidden rounded-[20px] border border-line ${big ? 'col-span-2 h-[240px] lg:row-span-2 lg:h-auto' : 'h-[190px] lg:h-auto'}`}>
+                <Photo name={photo} />
+                <div className="absolute inset-x-2.5 bottom-2.5 rounded-xl bg-white/90 px-3 py-2 backdrop-blur sm:inset-x-3 sm:bottom-3">
+                  <div className="text-sm font-semibold leading-5 text-ink">{title}</div>
+                  <div className={`text-xs text-muted ${big ? '' : 'hidden sm:block'}`}>{text}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section id="how" className="flex scroll-mt-20 flex-col gap-8">
+          <Heading eyebrow="How it works" title="Three simple steps" />
+          <div className="grid gap-4 md:grid-cols-3">
+            {STEPS.map(({ icon: Icon, title, text }, i) => (
+              <div key={title} className="card flex gap-4 p-5">
+                <div className={`icon-tile h-10 w-10 ${TILES[i]}`}><Icon size={20} /></div>
+                <div>
+                  <div className="text-xs font-bold text-muted">Step {i + 1}</div>
+                  <h3 className="text-base font-semibold text-ink">{title}</h3>
+                  <p className="mt-1 text-sm text-muted">{text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Help */}
+        <section id="help" className="flex scroll-mt-20 flex-col gap-8">
+          <Heading eyebrow="Help" title="Questions people ask" />
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_344px] lg:items-start lg:gap-14">
+            <Accordion items={FAQ} />
+            <div className="card p-5">
+              <h3 className="text-base font-semibold text-ink">Sugar ranges</h3>
+              <p className="mt-1 text-xs text-muted">General targets. Your doctor may set different ones.</p>
+              <div className="mt-4 flex flex-col gap-2">
+                {SUGAR_RANGES.map((r) => (
+                  <div key={r.label} className={`flex items-center justify-between gap-2 rounded-xl px-3.5 py-2.5 ${r.tone}`}>
+                    <span className="text-sm font-semibold">{r.label}</span>
+                    <span className="text-xs font-semibold">{r.range}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Call to action */}
+        <section className="grid items-center gap-6 overflow-hidden rounded-[20px] bg-gradient-to-br from-sky via-ice to-mint p-5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_344px] lg:gap-14 lg:p-10">
+          <div className="text-center lg:text-left">
+            <h2 className="text-[26px] font-bold tracking-tight text-ink sm:text-[32px]">Start your first healthy week</h2>
+            <p className="mx-auto mt-3 max-w-[520px] text-base text-ink/70 lg:mx-0">Create a free account and try the demo data to see every feature in one minute.</p>
+            <Link href="/register" className="btn mt-6 bg-ink px-6 text-white hover:bg-brand-900">Create free account <ArrowRight size={16} /></Link>
+          </div>
+          <div className="h-56 overflow-hidden rounded-xl ring-4 ring-white/70 lg:h-[260px]">
+            <Photo name="couple-walk" />
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-line bg-white">
+        <div className="mx-auto flex max-w-[1080px] flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-muted sm:flex-row sm:px-8 xl:px-0">
           <Logo size={28} />
           <div className="text-center sm:text-right">
             Semester 5 Project · Akash R & Anupraghavan R · Guide: Prof. Gunavardini V
@@ -148,6 +230,6 @@ export default function Home() {
           </div>
         </div>
       </footer>
-    </main>
+    </div>
   );
 }

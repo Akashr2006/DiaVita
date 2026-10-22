@@ -55,7 +55,7 @@ export default function ReportPage() {
             ].map(([l, v, u]) => (
               <div key={l} className="rounded-xl bg-slate-50 p-3">
                 <div className="text-xs font-semibold uppercase text-slate-500">{l}</div>
-                <div className="mt-1 text-2xl font-extrabold">{v} <span className="text-xs font-medium text-slate-500">{u}</span></div>
+                <div className="mt-1 text-2xl font-bold">{v} <span className="text-xs font-medium text-slate-500">{u}</span></div>
               </div>
             ))}
           </div>

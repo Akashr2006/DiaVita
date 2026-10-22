@@ -82,11 +82,11 @@ export default function MedicationsPage() {
               const overdue = !m.taken_today && m.schedule_time < now;
               const Icon = m.med_type === 'insulin' ? Syringe : Pill;
               return (
-                <div key={m.id} className={`flex items-center gap-3 rounded-xl border p-3 transition ${m.taken_today ? 'border-emerald-200 bg-emerald-50/60' : overdue ? 'border-amber-200 bg-amber-50/60' : 'border-slate-200'}`}>
+                <div key={m.id} className={`flex items-center gap-3 rounded-xl border p-3 transition ${m.taken_today ? 'border-mint-200 bg-mint-50/60' : overdue ? 'border-amber-200 bg-amber-50/60' : 'border-slate-200'}`}>
                   <button onClick={() => toggle(m.id)} className="shrink-0" aria-label={m.taken_today ? 'Mark as not taken' : 'Mark as taken'}>
-                    {m.taken_today ? <CheckCircle2 size={28} className="text-emerald-600" /> : <Circle size={28} className="text-slate-300 hover:text-brand-500" />}
+                    {m.taken_today ? <CheckCircle2 size={28} className="text-mint-600" /> : <Circle size={28} className="text-slate-300 hover:text-brand-500" />}
                   </button>
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-600"><Icon size={18} /></div>
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-mint text-ink"><Icon size={18} /></div>
                   <div className="min-w-0 flex-1">
                     <div className={`text-sm font-semibold ${m.taken_today ? 'text-slate-500 line-through' : ''}`}>{m.name} · {m.dosage}</div>
                     <div className="text-xs text-slate-500">

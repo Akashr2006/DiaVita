@@ -1,7 +1,7 @@
-import { Plus_Jakarta_Sans } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
 
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-jakarta', display: 'swap' });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 
 export const metadata = {
   title: 'DiaVita – Smart Diabetes Lifestyle Companion',
@@ -11,13 +11,13 @@ export const metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0f766e',
+  themeColor: '#85d1db',
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={jakarta.variable}>
-      <body className="font-sans antialiased">{children}</body>
+    <html lang="en" className={inter.variable}>
+      <body className="font-sans text-sm antialiased">{children}</body>
     </html>
   );
 }

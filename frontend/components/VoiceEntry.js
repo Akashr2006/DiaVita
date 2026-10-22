@@ -1,11 +1,21 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Mic, MicOff, Volume2 } from 'lucide-react';
+import { Mic, Square, Volume2, VolumeX } from 'lucide-react';
 import { api } from '@/lib/api';
 
 // Speak a reading in English, Tamil or Hindi: e.g. "sugar 140 after lunch", "சர்க்கரை 140 சாப்பிட்ட பின்",
 // "शुगर 140 खाने के बाद". The app parses it, saves it and reads the result back aloud.
-const LANGS = { 'en-IN': 'English', 'ta-IN': 'தமிழ்', 'hi-IN': 'हिंदी' };
+export const LANGS = [
+  { code: 'en-IN', short: 'English' },
+  { code: 'ta-IN', short: 'தமிழ்' },
+  { code: 'hi-IN', short: 'हिंदी' },
+];
+
+export const EXAMPLES = {
+  'en-IN': ['sugar 140 after lunch', 'fasting sugar 98', 'sugar 120 before dinner'],
+  'ta-IN': ['சர்க்கரை 140 சாப்பிட்ட பின்', 'காலை வெறும் வயிறு 110', 'சாப்பிடும் முன் 120'],
+  'hi-IN': ['शुगर 140 खाने के बाद', 'खाली पेट शुगर 98', 'खाने से पहले 120'],
+};
 
 const KEYWORDS = [
   ['post_meal', ['after', 'post', 'பின்', 'பிறகு', 'बाद']],
@@ -20,6 +30,8 @@ const SPOKEN = {
   'hi-IN': { saved: (v) => `${v} दर्ज किया गया।`, ok: 'शुगर सही सीमा में है।', low: 'शुगर कम है। तुरंत 15 ग्राम मीठा लें।', high: 'शुगर ज़्यादा है। पानी पिएं और थोड़ा टहलें।', unclear: 'माफ़ कीजिए, नंबर समझ नहीं आया। फिर से बोलें।' },
 };
 
+const CONTEXT_WORDS = { post_meal: 'after a meal', pre_meal: 'before a meal', bedtime: 'at bedtime', fasting: 'fasting', random: 'random' };
+
 // Convert Tamil and Devanagari digits to ASCII, then pick the first plausible glucose value
 export function parseSpeech(text) {
   const normal = text
@@ -31,8 +43,8 @@ export function parseSpeech(text) {
   return { value, context };
 }
 
-function speak(text, lang) {
-  if (!('speechSynthesis' in window)) return;
+export function speak(text, lang) {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
   const u = new SpeechSynthesisUtterance(text);
   u.lang = lang;
   u.rate = 0.95;
@@ -40,33 +52,64 @@ function speak(text, lang) {
   window.speechSynthesis.speak(u);
 }
 
+const store = {
+  get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
+};
+
+export function LangSwitch({ value, onChange }) {
+  return (
+    <div role="radiogroup" aria-label="Voice language" className="grid w-full grid-cols-3 gap-1 rounded-[10px] bg-soft p-1 ring-1 ring-line">
+      {LANGS.map((l) => (
+        <button
+          key={l.code} type="button" role="radio" aria-checked={value === l.code} onClick={() => onChange(l.code)}
+          className={`h-8 rounded-lg text-[13px] font-semibold transition ${value === l.code ? 'bg-white text-ink shadow-sm ring-1 ring-line' : 'text-muted hover:text-ink'}`}
+        >
+          {l.short}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function VoiceEntry({ onSaved }) {
-  const [lang, setLang] = useState('en-IN');
+  const [lang, setLangState] = useState('en-IN');
+  const [readAloud, setReadAloud] = useState(true);
   const [listening, setListening] = useState(false);
   const [heard, setHeard] = useState('');
+  const [result, setResult] = useState(null);
   const [supported, setSupported] = useState(true);
   const recRef = useRef(null);
 
   useEffect(() => {
     setSupported(Boolean(window.SpeechRecognition || window.webkitSpeechRecognition));
+    setLangState(store.get('dv-voice-lang', 'en-IN'));
+    setReadAloud(store.get('dv-voice-read', '1') === '1');
     return () => recRef.current?.abort();
   }, []);
+
+  const setLang = (code) => { setLangState(code); store.set('dv-voice-lang', code); };
+  const toggleRead = () => { setReadAloud((r) => { store.set('dv-voice-read', r ? '0' : '1'); return !r; }); };
+  const say = (text) => readAloud && speak(text, lang);
 
   async function handle(text) {
     setHeard(text);
     const words = SPOKEN[lang];
     const { value, context } = parseSpeech(text);
     if (!value) {
-      speak(words.unclear, lang);
-      onSaved?.({ level: 'warning', message: `Heard “${text}” but found no glucose value. Try “sugar 140 after lunch”.` });
+      say(words.unclear);
+      setResult({ ok: false, text: 'No number found. Try again, for example “sugar 140 after lunch”.' });
+      onSaved?.({ level: 'warning', message: `Heard “${text}” but found no glucose value.` });
       return;
     }
     try {
       const res = await api('/glucose', { method: 'POST', body: { value, context, note: `Voice: ${text}` } });
       const tone = value < 70 ? words.low : value > 180 ? words.high : words.ok;
-      speak(`${words.saved(value)} ${tone}`, lang);
-      onSaved?.(res.alert || { level: 'success', message: `Voice entry saved: ${value} mg/dL (${context.replace('_', ' ')}).` });
+      say(`${words.saved(value)} ${tone}`);
+      setResult({ ok: true, text: `Saved ${value} mg/dL · ${CONTEXT_WORDS[context]}` });
+      onSaved?.(res.alert || { level: 'success', message: `Voice entry saved: ${value} mg/dL (${CONTEXT_WORDS[context]}).` });
     } catch (err) {
+      setResult({ ok: false, text: err.message });
       onSaved?.({ level: 'danger', message: err.message });
     }
   }
@@ -82,35 +125,69 @@ export default function VoiceEntry({ onSaved }) {
     rec.interimResults = false;
     rec.maxAlternatives = 1;
     rec.onresult = (e) => handle(e.results[0][0].transcript);
-    rec.onerror = (e) => onSaved?.({ level: 'warning', message: e.error === 'not-allowed' ? 'Microphone permission was denied.' : 'Could not hear clearly. Please try again.' });
+    rec.onerror = (e) => setResult({ ok: false, text: e.error === 'not-allowed' ? 'Microphone permission was denied. Allow it in the browser and try again.' : 'Could not hear clearly. Please try again.' });
     rec.onend = () => setListening(false);
     recRef.current = rec;
     setHeard('');
+    setResult(null);
     setListening(true);
     rec.start();
   }
 
-  if (!supported) {
-    return <p className="text-xs text-slate-400">Voice entry works in Chrome / Edge on Android and desktop.</p>;
-  }
+  const status = listening ? 'Listening… speak now' : result ? (result.ok ? 'Reading saved' : 'Please try again') : 'Tap the mic and speak';
 
   return (
-    <div className="rounded-xl bg-slate-50 p-3">
-      <div className="flex items-center gap-2">
-        <button type="button" onClick={toggle}
-          className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-white transition ${listening ? 'animate-pulse bg-rose-500' : 'bg-violet-600 hover:bg-violet-700'}`}
-          aria-label={listening ? 'Stop listening' : 'Speak a reading'}>
-          {listening ? <MicOff size={20} /> : <Mic size={20} />}
+    <div className="flex flex-col items-center gap-4 text-center">
+      <LangSwitch value={lang} onChange={setLang} />
+
+      {supported ? (
+        <button
+          type="button" onClick={toggle} aria-label={listening ? 'Stop listening' : 'Start speaking'}
+          className="relative grid h-[72px] w-[72px] place-items-center rounded-full"
+        >
+          {listening && (
+            <>
+              <span className="voice-ring absolute inset-0 rounded-full bg-aqua" />
+              <span className="voice-ring voice-ring-delay absolute inset-0 rounded-full bg-mint" />
+            </>
+          )}
+          <span className={`relative grid h-[72px] w-[72px] place-items-center rounded-full text-ink shadow-[0_8px_24px_-8px_rgba(31,111,124,0.55)] transition ${listening ? 'bg-mint' : 'bg-aqua hover:bg-[#74c7d2]'}`}>
+            {listening ? <Square size={24} fill="currentColor" /> : <Mic size={28} />}
+          </span>
         </button>
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold">{listening ? 'Listening…' : 'Speak your reading'}</div>
-          <div className="truncate text-xs text-slate-500">{heard ? `“${heard}”` : 'e.g. “sugar 140 after lunch”'}</div>
+      ) : (
+        <p className="rounded-xl bg-soft px-3 py-2.5 text-xs text-muted ring-1 ring-line">
+          Voice entry works in Chrome or Edge on Android and laptops. You can still type your reading.
+        </p>
+      )}
+
+      <div className="min-h-[44px]" aria-live="polite">
+        <div className={`text-base font-semibold ${result && !result.ok ? 'text-amber-700' : 'text-ink'}`}>{supported ? status : 'How to say it'}</div>
+        <div className="mt-0.5 text-xs text-muted">
+          {heard ? `“${heard}”` : result ? '' : 'Say the number and when you checked it'}
         </div>
-        <select value={lang} onChange={(e) => setLang(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold" aria-label="Voice language">
-          {Object.entries(LANGS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
+        {result && <div className={`mt-1 text-xs font-semibold ${result.ok ? 'text-mint-700' : 'text-amber-700'}`}>{result.text}</div>}
       </div>
-      <div className="mt-2 flex items-center gap-1 text-[11px] text-slate-400"><Volume2 size={12} /> Result is read aloud — helpful for elderly users</div>
+
+      <div className="w-full">
+        <div className="eyebrow mb-2 text-left text-muted">Try saying</div>
+        <div className="flex flex-col gap-1.5">
+          {EXAMPLES[lang].map((ex) => (
+            <button
+              key={ex} type="button" onClick={() => speak(ex, lang)} title="Hear how to say it"
+              className="flex items-center justify-between gap-2 rounded-[10px] bg-soft px-3 py-2 text-left text-[13px] text-ink ring-1 ring-line transition hover:bg-[#e2f4f6]"
+            >
+              <span className="truncate">“{ex}”</span>
+              <Volume2 size={15} className="shrink-0 text-brand-600" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button type="button" onClick={toggleRead} className="chip h-8 text-xs text-muted hover:bg-soft hover:text-ink">
+        {readAloud ? <Volume2 size={14} /> : <VolumeX size={14} />}
+        {readAloud ? 'Result is read aloud' : 'Read aloud is off'}
+      </button>
     </div>
   );
 }

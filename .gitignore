@@ -11,5 +11,8 @@ node_modules
 /*.pptx
 /DiaVita_Second_Review.pdf
 
+# third-party photos (from Pinterest) are used locally only; the app shows palette tiles without them
+/frontend/public/photos/
+
 # local tool settings
 .claude/

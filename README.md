@@ -61,11 +61,17 @@ backend/
   src/sql/schema.sql       Database schema
   src/routes/              auth, glucose, meals, activities, medications, risk, insights
 frontend/
-  app/                     Next.js pages (landing, login, register, dashboard/*)
-  components/              Logo, UI kit, charts
+  app/                     Next.js pages (landing, login, register, dashboard/*, dashboard/help)
+  components/              Logo, UI kit, charts, voice entry, photos
   lib/api.js               API client + helpers
+  lib/help.js              Help page content
+  public/brand/            DiaVita logo
 DiaVita_Second_Review.pptx Second review presentation
 ```
+
+The design uses the "Charming seaside" palette (`#B3EBF2`, `#85D1DB`, `#B6F2D1`, `#C9FDF2`), defined in
+`frontend/app/globals.css`. Photos in `frontend/public/photos/` are third-party images kept out of this
+repository; without them the app shows soft palette tiles in their place.
 
 ## Quick start on this laptop (no Neon needed)
 

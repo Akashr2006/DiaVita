@@ -77,7 +77,7 @@ export default function MealsPage() {
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
             {categories.map((c) => (
               <button key={c} onClick={() => setCat(c)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${cat === c ? 'bg-brand-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${cat === c ? 'bg-sky text-ink' : 'bg-soft text-muted hover:bg-slate-200'}`}>
                 {c}
               </button>
             ))}
@@ -92,7 +92,7 @@ export default function MealsPage() {
                     <div className="text-xs text-slate-500">{f.serving} · {f.carbs}g carbs · {f.calories} kcal</div>
                     <div className="mt-1.5"><Badge tone={g.tone}>GI {f.gi}</Badge></div>
                   </div>
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-700 group-hover:bg-brand-700 group-hover:text-white">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-700 group-hover:bg-aqua group-hover:text-ink">
                     <Plus size={16} />
                   </div>
                 </button>
@@ -134,7 +134,7 @@ export default function MealsPage() {
               <div className="grid grid-cols-3 gap-2 text-center">
                 {[['Carbs', `${totals.carbs.toFixed(0)}g`], ['Calories', Math.round(totals.cal)], ['Glycemic load', totals.gl.toFixed(1)]].map(([l, v]) => (
                   <div key={l} className="rounded-xl bg-brand-50 p-2.5">
-                    <div className="text-lg font-extrabold text-brand-800">{v}</div>
+                    <div className="text-lg font-bold text-brand-800">{v}</div>
                     <div className="text-[10px] font-semibold uppercase text-brand-700/70">{l}</div>
                   </div>
                 ))}

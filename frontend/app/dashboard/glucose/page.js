@@ -116,8 +116,8 @@ export default function GlucosePage() {
               const s = glucoseStatus(r.value, user.target_min, user.target_max);
               return (
                 <li key={r.id} className="flex items-center gap-3 px-5 py-3">
-                  <div className={`grid h-12 w-14 shrink-0 place-items-center rounded-xl text-lg font-extrabold ${
-                    s.tone === 'green' ? 'bg-emerald-50 text-emerald-700' : s.tone === 'amber' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'}`}>
+                  <div className={`grid h-12 w-14 shrink-0 place-items-center rounded-xl text-lg font-bold ${
+                    s.tone === 'green' ? 'bg-mint-50 text-mint-700' : s.tone === 'amber' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'}`}>
                     {Math.round(r.value)}
                   </div>
                   <div className="min-w-0 flex-1">

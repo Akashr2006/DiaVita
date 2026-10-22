@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import Logo from '@/components/Logo';
+import Photo from '@/components/Photo';
 import { Alert } from '@/components/ui';
 import { api, setToken } from '@/lib/api';
 
@@ -31,26 +32,28 @@ export default function AuthForm({ mode }) {
   }
 
   return (
-    <main className="grid min-h-screen lg:grid-cols-2">
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-800 to-brand-600 p-10 text-white lg:flex">
-        <div className="pointer-events-none absolute -right-20 top-20 h-72 w-72 rounded-full bg-brand-400/30 blur-3xl" />
-        <Link href="/"><Logo light tagline /></Link>
+    <main className="grid min-h-screen bg-page lg:grid-cols-2">
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-sky via-ice to-mint p-10 lg:flex">
+        <Link href="/" aria-label="DiaVita home"><Logo tagline /></Link>
         <div className="relative">
-          <h2 className="text-4xl font-extrabold leading-tight">Small daily habits.<br />Big change in sugar control.</h2>
-          <p className="mt-4 max-w-md text-brand-50/90">
-            Log readings in seconds, discover low-GI Indian food swaps and watch your DiaVita Score climb.
+          <div className="mb-8 h-64 max-w-md overflow-hidden rounded-[20px] ring-4 ring-white/70 xl:h-72">
+            <Photo name="couple-walk" eager />
+          </div>
+          <h2 className="text-[36px] font-bold leading-tight tracking-tight text-ink">Small daily habits.<br />Big change in sugar control.</h2>
+          <p className="mt-4 max-w-md text-base text-ink/70">
+            Log readings in seconds, find low-GI Indian food swaps and watch your DiaVita Score climb.
           </p>
         </div>
-        <div className="text-sm text-brand-100/80">Semester 5 Project · Bannari Amman Institute of Technology</div>
+        <div className="text-sm text-ink/60">Semester 5 Project · Bannari Amman Institute of Technology</div>
       </div>
 
       <div className="flex items-center justify-center px-4 py-10 sm:px-8">
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden"><Link href="/"><Logo tagline /></Link></div>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+          <h1 className="text-[22px] font-bold leading-8 tracking-tight text-ink sm:text-[28px] sm:leading-9">
             {isRegister ? 'Create your account' : 'Welcome back'}
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-muted">
             {isRegister ? 'Start managing diabetes the smart way.' : 'Log in to see today’s DiaVita Score.'}
           </p>
 
@@ -71,7 +74,7 @@ export default function AuthForm({ mode }) {
               <input id="password" type="password" className="input" value={form.password} onChange={set('password')} required minLength={6} placeholder="At least 6 characters" />
             </div>
             {isRegister && (
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <div>
                   <label className="label" htmlFor="age">Age</label>
                   <input id="age" type="number" min="1" max="120" className="input" value={form.age} onChange={set('age')} placeholder="45" />
@@ -84,8 +87,8 @@ export default function AuthForm({ mode }) {
                     <option value="other">Other</option>
                   </select>
                 </div>
-                <div>
-                  <label className="label" htmlFor="dtype">Type</label>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="label" htmlFor="dtype">Diabetes type</label>
                   <select id="dtype" className="input" value={form.diabetes_type} onChange={set('diabetes_type')}>
                     <option value="type1">Type 1</option>
                     <option value="type2">Type 2</option>
@@ -95,13 +98,13 @@ export default function AuthForm({ mode }) {
                 </div>
               </div>
             )}
-            <button className="btn btn-primary w-full py-3" disabled={loading}>
+            <button className="btn btn-primary w-full" disabled={loading}>
               {loading && <Loader2 size={16} className="animate-spin" />}
               {isRegister ? 'Create account' : 'Log in'}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-500">
+          <p className="mt-6 text-center text-sm text-muted">
             {isRegister ? 'Already have an account? ' : 'New to DiaVita? '}
             <Link href={isRegister ? '/login' : '/register'} className="font-semibold text-brand-700 hover:underline">
               {isRegister ? 'Log in' : 'Create one'}

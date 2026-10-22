@@ -92,12 +92,12 @@ export default function ActivityPage() {
           <div style={{ width: '100%', height: 260 }}>
             <ResponsiveContainer>
               <BarChart data={week} margin={{ top: 10, right: 8, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
-                <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: 12, fontSize: 12 }} formatter={(v) => [`${v} min`, 'Active']} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#d9eff1" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#567277' }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#567277' }} tickLine={false} axisLine={false} />
+                <Tooltip cursor={{ fill: '#eef9fa' }} contentStyle={{ borderRadius: 12, fontSize: 12 }} formatter={(v) => [`${v} min`, 'Active']} />
                 <ReferenceLine y={30} stroke="#f59e0b" strokeDasharray="5 5" />
-                <Bar dataKey="minutes" fill="#14b8a6" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="minutes" fill="#85d1db" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -95,11 +95,11 @@ export default function RiskPage() {
               <>
                 <div className="relative mx-auto mt-4 h-28 w-56">
                   <svg viewBox="0 0 200 110" className="h-full w-full">
-                    <path d="M15 100 A85 85 0 0 1 185 100" fill="none" stroke="#e2e8f0" strokeWidth="18" strokeLinecap="round" />
+                    <path d="M15 100 A85 85 0 0 1 185 100" fill="none" stroke="#d9eff1" strokeWidth="18" strokeLinecap="round" />
                     <path d="M15 100 A85 85 0 0 1 185 100" fill="none" stroke={LEVEL[result.risk_level].color} strokeWidth="18" strokeLinecap="round"
                       strokeDasharray="267" strokeDashoffset={267 - (267 * result.total_score) / 100} />
                   </svg>
-                  <div className="absolute inset-x-0 bottom-0 text-4xl font-extrabold">{result.total_score}</div>
+                  <div className="absolute inset-x-0 bottom-0 text-4xl font-bold">{result.total_score}</div>
                 </div>
                 <div className="mt-2"><Badge tone={LEVEL[result.risk_level].tone}>{result.risk_level.toUpperCase()} RISK</Badge></div>
                 <p className="mt-3 text-left text-sm text-slate-600">{result.advice}</p>

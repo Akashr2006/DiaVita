@@ -19,6 +19,14 @@ CREATE TABLE IF NOT EXISTS users (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Live sync: goes up by one on every change to a patient's data, so open screens can tell they are behind
+CREATE TABLE IF NOT EXISTS live_changes (
+  user_id    INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  version    BIGINT NOT NULL DEFAULT 0,
+  area       VARCHAR(40),
+  changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS glucose_readings (
   id          SERIAL PRIMARY KEY,
   user_id     INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

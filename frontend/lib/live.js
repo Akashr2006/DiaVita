@@ -24,22 +24,59 @@ export function useLiveRefresh(load, { everyMs = 60000 } = {}) {
   }, [everyMs]);
 }
 
-// One Server-Sent Events connection per open dashboard. Returns 'connecting' | 'live' | 'offline'.
+const POLL_MS = 4000;
+
+// Live sync for an open dashboard. Returns 'connecting' | 'live' | 'offline'.
+// A normal server pushes changes over one Server-Sent Events connection; the API on Vercel cannot keep
+// connections open, so there the dashboard checks the patient's change counter every few seconds.
 export function useLiveConnection() {
   const [status, setStatus] = useState('connecting');
   useEffect(() => {
     const token = getToken();
-    if (!token || typeof EventSource === 'undefined') return undefined;
-    const es = new EventSource(`${API_URL}/live?token=${encodeURIComponent(token)}`);
-    es.addEventListener('hello', () => setStatus('live'));
-    es.addEventListener('change', (e) => {
-      setStatus('live');
-      let detail = {};
-      try { detail = JSON.parse(e.data); } catch { /* keep empty */ }
-      refreshAll(detail);
+    if (!token) return undefined;
+    let stopped = false;
+    let es;
+    let timer;
+    let seen = null;
+
+    const check = async () => {
+      if (stopped || document.visibilityState !== 'visible') return;
+      try {
+        const res = await fetch(`${API_URL}/live/version`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+        if (!res.ok) throw new Error(String(res.status));
+        const v = await res.json();
+        if (seen !== null && v.version !== seen) refreshAll({ area: v.area, at: v.at });
+        seen = v.version;
+        setStatus('live');
+        return v;
+      } catch {
+        setStatus('offline');
+        return null;
+      }
+    };
+
+    const stream = () => {
+      es = new EventSource(`${API_URL}/live?token=${encodeURIComponent(token)}`);
+      es.addEventListener('hello', () => setStatus('live'));
+      es.addEventListener('change', (e) => {
+        setStatus('live');
+        let detail = {};
+        try { detail = JSON.parse(e.data); } catch { /* keep empty */ }
+        refreshAll(detail);
+      });
+      es.onerror = () => setStatus(es.readyState === EventSource.CLOSED ? 'offline' : 'connecting');
+    };
+
+    check().then((v) => {
+      if (stopped) return;
+      if (v?.stream && typeof EventSource !== 'undefined') stream();
+      else timer = setInterval(check, POLL_MS);
     });
-    es.onerror = () => setStatus(es.readyState === EventSource.CLOSED ? 'offline' : 'connecting');
-    return () => es.close();
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+      es?.close();
+    };
   }, []);
   return status;
 }

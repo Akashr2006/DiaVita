@@ -59,7 +59,7 @@ export default async function Home() {
   // the Android app opens straight into the app, not the marketing page
   if (process.env.NEXT_PUBLIC_MOBILE === '1') return <MobileStart />;
   // QR code for the "Try in mobile" button, drawn once when the page is built
-  const qrSvg = await QRCode.toString(APK_URL, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#0d2b30', light: '#ffffff' } });
+  const qrSvg = await QRCode.toString(APK_URL, { type: 'svg', margin: 4, errorCorrectionLevel: 'M', color: { dark: '#000000', light: '#ffffff' } });
   return (
     <div className="min-h-screen overflow-x-hidden bg-page">
       {/* Header: 64px */}

@@ -5,6 +5,7 @@ import { LogoMark } from '@/components/Logo';
 import { ASSISTANT_LANGS, converse, newConversation, quickReplies } from '@/lib/assistant';
 import { refreshAll } from '@/lib/live';
 import { speak, stopSpeaking, voiceQuality } from '@/lib/voice';
+import { createRecognizer, speechInputSupported } from '@/lib/speech';
 
 const store = {
   get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
@@ -51,32 +52,25 @@ export default function Assistant({ user }) {
 
   const stopListening = useCallback(() => { recRef.current?.abort(); recRef.current = null; setListening(false); setInterim(''); }, []);
 
+  // the browser's speech recognition on websites, Android's own recognizer inside the app (lib/speech.js)
   const startListening = useCallback(() => {
-    const SR = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
-    if (!SR) { setMicState('none'); return; }
+    if (!speechInputSupported()) { setMicState('none'); return; }
     stopSpeaking();
     recRef.current?.abort();
-    const rec = new SR();
-    rec.lang = ASSISTANT_LANGS.find((l) => l.code === settingsRef.current.lang).speech;
-    rec.interimResults = true;
-    rec.maxAlternatives = 1;
-    let finalText = '';
-    rec.onresult = (e) => {
-      let live = '';
-      for (const r of e.results) { if (r.isFinal) finalText = r[0].transcript; else live += r[0].transcript; }
-      setInterim(finalText || live);
-    };
-    rec.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') setMicState('denied'); };
-    rec.onend = () => {
-      setListening(false);
-      setInterim('');
-      recRef.current = null;
-      if (finalText.trim()) handleRef.current({ text: finalText }, finalText);
-    };
+    const rec = createRecognizer(ASSISTANT_LANGS.find((l) => l.code === settingsRef.current.lang).speech, {
+      onInterim: (text) => setInterim(text),
+      onFinal: (text) => handleRef.current({ text }, text),
+      onError: (kind) => { if (kind === 'denied') setMicState('denied'); },
+      onEnd: () => {
+        setListening(false);
+        setInterim('');
+        if (recRef.current === rec) recRef.current = null;
+      },
+    });
     recRef.current = rec;
     setListening(true);
     setMicState('ok');
-    try { rec.start(); } catch { setListening(false); }
+    rec.start();
   }, []);
 
   // One turn: show what the patient said, ask the conversation engine, show + speak the answer
@@ -109,7 +103,7 @@ export default function Assistant({ user }) {
     setReadAloud(store.get('dv-voice-read', '1') === '1');
     setLangState(saved);
     settingsRef.current.lang = saved;
-    if (typeof window !== 'undefined' && !(window.SpeechRecognition || window.webkitSpeechRecognition)) setMicState('none');
+    if (!speechInputSupported()) setMicState('none');
     window.speechSynthesis?.getVoices();
     const t0 = setTimeout(() => handleRef.current({ intent: 'hello' }), 250);
     return () => { clearTimeout(t0); recRef.current?.abort(); stopSpeaking(); };

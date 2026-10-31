@@ -1,7 +1,11 @@
 'use client';
 // How DiaVita speaks. First choice: the natural Sarvam AI voice from our server (clear Tamil, Hindi and Indian
-// English on every device). Otherwise: the best voice built into the phone or browser.
+// English on every device). Otherwise: the phone's own voice inside the Android app, or the best browser voice.
 import { API_URL, getToken } from '@/lib/api';
+import { isNativeApp } from '@/lib/speech';
+
+// loaded only inside the Android app (see lib/speech.js)
+const tts = () => import('@capacitor-community/text-to-speech').then((m) => m.TextToSpeech);
 
 let statusPromise = null;
 let current = null; // the natural-voice clip that is playing
@@ -19,8 +23,13 @@ export function naturalVoiceAvailable() {
 
 export function stopSpeaking() {
   if (current) { current.pause(); current = null; }
-  if (typeof window !== 'undefined') window.speechSynthesis?.cancel();
+  if (typeof window === 'undefined') return;
+  if (isNativeApp()) tts().then((t) => t.stop()).catch(() => {});
+  else window.speechSynthesis?.cancel();
 }
+
+// Android app: does the phone have a voice for this language? (Most have Google's Tamil, Hindi and English voices.)
+const nativeSupports = (code) => tts().then((t) => t.isLanguageSupported({ lang: code })).then((r) => r.supported).catch(() => false);
 
 async function playNatural(lang, text, onEnd) {
   const key = `${lang}|${text}`;
@@ -61,6 +70,10 @@ function bestVoice(code) {
 // What the patient will hear for a language: 'natural' | 'device' (a real voice for that language) | 'basic' | 'none'
 export async function voiceQuality(lang) {
   if (await naturalVoiceAvailable()) return 'natural';
+  if (isNativeApp()) {
+    if (await nativeSupports(`${lang}-IN`)) return 'device';
+    return lang === 'ta' && (await nativeSupports('en-IN')) ? 'basic' : 'none';
+  }
   if (bestVoice(lang)) return 'device';
   return lang === 'ta' && bestVoice('en') ? 'basic' : 'none';
 }
@@ -85,10 +98,23 @@ function speakBrowser(lang, text, roman, onEnd) {
   });
 }
 
+async function speakNative(lang, text, roman, onEnd) {
+  let code = `${lang}-IN`;
+  let say = text;
+  if (!(await nativeSupports(code))) {
+    if (lang !== 'ta' || !roman) { onEnd?.(); return; }
+    code = 'en-IN';
+    say = roman;
+  }
+  try { await (await tts()).speak({ text: say, lang: code, rate: 0.95, pitch: 1.0, volume: 1.0, queueStrategy: 0 }); } catch { /* stopped or no engine */ }
+  onEnd?.();
+}
+
 export async function speak(lang, text, roman, onEnd) {
   if (typeof window === 'undefined') return;
   if (await naturalVoiceAvailable()) {
     try { await playNatural(lang, text, onEnd); return; } catch { /* use a built-in voice instead */ }
   }
-  speakBrowser(lang, text, roman, onEnd);
+  if (isNativeApp()) speakNative(lang, text, roman, onEnd);
+  else speakBrowser(lang, text, roman, onEnd);
 }

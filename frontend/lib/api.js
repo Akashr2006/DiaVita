@@ -24,7 +24,8 @@ export async function api(path, { method = 'GET', body } = {}) {
   const data = await res.json().catch(() => ({}));
   if (res.status === 401 && token) {
     clearToken();
-    if (typeof window !== 'undefined') window.location.href = '/login';
+    // the Android app is a single page: its start screen sends a logged-out user to login
+    if (typeof window !== 'undefined') window.location.href = process.env.NEXT_PUBLIC_MOBILE === '1' ? '/' : '/login';
   }
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;

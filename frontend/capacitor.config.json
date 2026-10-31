@@ -1,0 +1,14 @@
+{
+  "appId": "app.diavita.mobile",
+  "appName": "DiaVita",
+  "webDir": "out",
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#FAFEFD"
+    }
+  }
+}

@@ -1,0 +1,67 @@
+# Builds the DiaVita Android app (DiaVita.apk) on GitHub's servers and publishes it at
+# https://github.com/<owner>/<repo>/releases/download/mobile-latest/DiaVita.apk
+# which is what the "Try in mobile" button on the website downloads.
+name: Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/android-apk.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      # the online API the phone app talks to (set the DIAVITA_API_URL repository variable if Render gave another address)
+      NEXT_PUBLIC_API_URL: ${{ vars.DIAVITA_API_URL || 'https://diavita-api.onrender.com/api' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Build the app for mobile
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build:mobile
+
+      - name: Copy it into the Android project
+        working-directory: frontend
+        run: npx cap sync android
+
+      - name: Build the APK
+        working-directory: frontend/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Publish DiaVita.apk
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp frontend/android/app/build/outputs/apk/debug/app-debug.apk DiaVita.apk
+          gh release delete mobile-latest --cleanup-tag --yes || true
+          gh release create mobile-latest DiaVita.apk \
+            --title "DiaVita for Android" \
+            --notes "Android app built from commit ${GITHUB_SHA::7}. Install: open DiaVita.apk on the phone and allow installing from your browser if asked. Uses the online API at ${NEXT_PUBLIC_API_URL}." \
+            --latest

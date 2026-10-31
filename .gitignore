@@ -1,5 +1,7 @@
 node_modules
 .next
+# mobile (Android) build output
+/frontend/out/
 .env
 .env.*
 !.env.example
@@ -10,7 +12,7 @@ node_modules
 # submission documents are kept off the public repository
 /Report/
 /*.pptx
-/DiaVita_Second_Review.pdf
+/DiaVita_*_Review.pdf
 
 # third-party photos (from Pinterest) are used locally only; the app shows palette tiles without them
 /frontend/public/photos/

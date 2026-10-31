@@ -5,16 +5,23 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
-    "start": "next start -p 3000"
+    "start": "next start -p 3000",
+    "build:mobile": "node scripts/build-mobile.mjs"
   },
   "dependencies": {
+    "@capacitor-community/speech-recognition": "7.0.1",
+    "@capacitor-community/text-to-speech": "8.0.2",
+    "@capacitor/android": "8.6.0",
+    "@capacitor/core": "8.6.0",
     "lucide-react": "^1.58.0",
     "next": "^15.5.28",
+    "qrcode": "1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "recharts": "^3.10.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.6.0",
     "@tailwindcss/postcss": "^4.3.3",
     "postcss": "^8.5.30",
     "tailwindcss": "^4.3.3"

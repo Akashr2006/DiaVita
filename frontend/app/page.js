@@ -4,6 +4,10 @@ import {
   Smartphone, Sparkles, Utensils,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
+import MobileStart from '@/components/MobileStart';
+import QRCode from 'qrcode';
+import TryMobile from '@/components/TryMobile';
+import { APK_URL } from '@/lib/mobile';
 import Photo from '@/components/Photo';
 import Accordion from '@/components/Accordion';
 import { FAQ, SUGAR_RANGES } from '@/lib/help';
@@ -51,7 +55,11 @@ function Heading({ eyebrow, title, text }) {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  // the Android app opens straight into the app, not the marketing page
+  if (process.env.NEXT_PUBLIC_MOBILE === '1') return <MobileStart />;
+  // QR code for the "Try in mobile" button, drawn once when the page is built
+  const qrSvg = await QRCode.toString(APK_URL, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#0d2b30', light: '#ffffff' } });
   return (
     <div className="min-h-screen overflow-x-hidden bg-page">
       {/* Header: 64px */}
@@ -64,6 +72,7 @@ export default function Home() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            <TryMobile qrSvg={qrSvg} />
             <Link href="/login" className="btn btn-plain btn-sm">Log in</Link>
             <Link href="/register" className="btn btn-primary btn-sm">Get started</Link>
           </div>

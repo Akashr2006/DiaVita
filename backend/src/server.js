@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const db = require('./db');
 const { requireAuth } = require('./middleware/auth');
+const live = require('./live');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -16,9 +17,11 @@ app.use(morgan('dev'));
 
 app.get('/api/health', async (req, res) => {
   const { rows } = await db.query('SELECT NOW() AS time');
-  res.json({ status: 'ok', app: 'DiaVita API', database: 'connected', time: rows[0].time });
+  res.json({ status: 'ok', app: 'DiaVita API', database: 'connected', provider: db.provider, time: rows[0].time });
 });
 
+app.get('/api/live', live.stream);
+app.use('/api', live.announceWrites);
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/glucose', requireAuth, require('./routes/glucose'));
 app.use('/api/meals', requireAuth, require('./routes/meals'));
@@ -37,4 +40,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong. Please try again.' });
 });
 
-app.listen(PORT, () => console.log(`DiaVita API running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`DiaVita API running on http://localhost:${PORT} · database: ${db.provider}`));

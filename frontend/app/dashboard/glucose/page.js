@@ -2,10 +2,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, Download, Droplet, Keyboard, MessageSquareText, Mic, Plus, Trash2, Utensils } from 'lucide-react';
 import { useUser } from '@/components/UserContext';
-import GlucoseChart from '@/components/GlucoseChart';
-import { REFRESH_EVENT } from '@/components/VoiceSheet';
+import { ContextBars, DailyRangeChart, TimeInRange } from '@/components/charts';
 import { Alert, Badge, Empty, PageHeader, Spinner } from '@/components/ui';
 import { api, CONTEXT_LABELS, glucoseStatus } from '@/lib/api';
+import { useLiveRefresh } from '@/lib/live';
 
 const MEAL_LABELS = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' };
 const VALUE_TILE = { green: 'bg-mint-50 text-mint-700', amber: 'bg-amber-50 text-amber-700', red: 'bg-rose-50 text-rose-700' };
@@ -99,18 +99,9 @@ export default function GlucosePage() {
     [days]
   );
 
-  // Live data: reload on open, every 30 seconds, when the tab regains focus and after a voice entry
-  useEffect(() => {
-    load();
-    const timer = setInterval(() => document.visibilityState === 'visible' && load(), LIVE_REFRESH_MS);
-    window.addEventListener('focus', load);
-    window.addEventListener(REFRESH_EVENT, load);
-    return () => {
-      clearInterval(timer);
-      window.removeEventListener('focus', load);
-      window.removeEventListener(REFRESH_EVENT, load);
-    };
-  }, [load]);
+  // Live data: reload on open, instantly on every change pushed by the server, and every 30 seconds as a safety net
+  useEffect(() => { load(); }, [load]);
+  useLiveRefresh(load, { everyMs: LIVE_REFRESH_MS });
 
   async function submit(e) {
     e.preventDefault();
@@ -134,10 +125,20 @@ export default function GlucosePage() {
   }
 
   const shown = useMemo(() => (readings || []).filter((r) => filter === 'all' || r.context === filter), [readings, filter]);
-  const chartData = useMemo(
-    () => [...shown].reverse().map((r) => ({ label: new Date(r.recorded_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }), value: r.value })),
-    [shown]
-  );
+  // one row per day (oldest first) for the daily range chart
+  const dayRows = useMemo(() => {
+    const map = new Map();
+    for (const r of shown) {
+      const k = dayKey(r.recorded_at);
+      const d = map.get(k) || { day: k, min: Infinity, max: -Infinity, sum: 0, count: 0 };
+      d.min = Math.min(d.min, r.value); d.max = Math.max(d.max, r.value); d.sum += r.value; d.count += 1;
+      map.set(k, d);
+    }
+    return [...map.values()].sort((a, b) => a.day.localeCompare(b.day)).map((d) => {
+      const date = new Date(`${d.day}T12:00:00`);
+      return { ...d, avg: d.sum / d.count, label: date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }), full: date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }) };
+    });
+  }, [shown]);
   const avg = shown.length ? Math.round(shown.reduce((s, r) => s + r.value, 0) / shown.length) : null;
 
   // History grouped by day, newest first, with a small summary per day
@@ -199,8 +200,8 @@ export default function GlucosePage() {
         <div className="card p-5 lg:col-span-2">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-bold">Readings chart</h2>
-              <p className="text-xs text-slate-500">{shown.length} readings · average {avg ?? '—'} mg/dL</p>
+              <h2 className="text-base font-semibold text-ink">Daily sugar</h2>
+              <p className="text-xs text-muted">{shown.length} readings · average {avg ?? '—'} mg/dL · each bar is one day, lowest to highest</p>
             </div>
             <div className="flex gap-2">
               <select className="input w-auto py-2" value={filter} onChange={(e) => { setFilter(e.target.value); setPages(1); }} aria-label="Filter by type">
@@ -214,13 +215,28 @@ export default function GlucosePage() {
               </select>
             </div>
           </div>
-          {!readings ? <Spinner /> : chartData.length ? (
-            <GlucoseChart data={chartData} lo={user.target_min} hi={user.target_max} height={280} />
+          {!readings ? <Spinner /> : dayRows.length ? (
+            <DailyRangeChart data={dayRows} lo={user.target_min} hi={user.target_max} height={280} />
           ) : (
             <Empty icon={Droplet} title="No readings in this range" text="Log a reading on the left to start your chart." />
           )}
         </div>
       </div>
+
+      {readings && shown.length > 0 && (
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <section className="card p-5">
+            <h2 className="text-base font-semibold text-ink">Time in range</h2>
+            <p className="mb-4 text-xs text-muted">Last {days} days · {filter === 'all' ? 'all readings' : CONTEXT_LABELS[filter]}</p>
+            <TimeInRange values={shown.map((r) => r.value)} lo={user.target_min} hi={user.target_max} />
+          </section>
+          <section className="card p-5">
+            <h2 className="text-base font-semibold text-ink">By time of check</h2>
+            <p className="mb-4 text-xs text-muted">Average sugar for each type of reading, last {days} days</p>
+            <ContextBars readings={readings} lo={user.target_min} hi={user.target_max} />
+          </section>
+        </div>
+      )}
 
       <section className="card mt-4 overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

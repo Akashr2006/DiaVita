@@ -5,6 +5,7 @@ import { useUser } from '@/components/UserContext';
 import Logo from '@/components/Logo';
 import { Badge, PageHeader, Spinner } from '@/components/ui';
 import { api, CONTEXT_LABELS, fmtDay, glucoseStatus } from '@/lib/api';
+import { useLiveRefresh } from '@/lib/live';
 
 export default function ReportPage() {
   const { user } = useUser();
@@ -15,6 +16,7 @@ export default function ReportPage() {
     setData(null);
     api(`/insights/report?days=${days}`).then(setData);
   }, [days]);
+  useLiveRefresh(() => api(`/insights/report?days=${days}`).then(setData));
 
   return (
     <div>

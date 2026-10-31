@@ -4,6 +4,7 @@ import { Activity, Flame, Footprints, Plus, Timer, Trash2 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Alert, Empty, PageHeader, Spinner, StatCard } from '@/components/ui';
 import { api, fmtDateTime } from '@/lib/api';
+import { useLiveRefresh } from '@/lib/live';
 
 const TYPES = {
   walking: 'Walking', brisk_walking: 'Brisk walking', jogging: 'Jogging', cycling: 'Cycling',
@@ -16,6 +17,7 @@ export default function ActivityPage() {
   const [msg, setMsg] = useState(null);
 
   useEffect(() => { api('/activities?days=7').then(setItems); }, []);
+  useLiveRefresh(() => api('/activities?days=7').then(setItems));
 
   async function submit(e) {
     e.preventDefault();

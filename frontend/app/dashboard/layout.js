@@ -11,6 +11,26 @@ import VoiceSheet, { OPEN_VOICE_EVENT } from '@/components/VoiceSheet';
 import { Spinner } from '@/components/ui';
 import { api, clearToken, getToken } from '@/lib/api';
 import { UserContext } from '@/components/UserContext';
+import { useLiveConnection } from '@/lib/live';
+
+const LIVE_STYLE = {
+  live: ['bg-mint-600', 'Live', 'Connected: changes from any device show up instantly'],
+  connecting: ['bg-amber-500', 'Connecting…', 'Connecting to the live data stream'],
+  offline: ['bg-rose-500', 'Offline', 'Live updates are paused. Pages still refresh every minute.'],
+};
+
+function LiveStatus({ status }) {
+  const [dot, label, title] = LIVE_STYLE[status] || LIVE_STYLE.connecting;
+  return (
+    <span className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-muted" title={title} aria-label={title}>
+      <span className="relative flex h-2.5 w-2.5">
+        {status === 'live' && <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${dot}`} />}
+        <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${dot}`} />
+      </span>
+      <span className="hidden sm:inline">{label}</span>
+    </span>
+  );
+}
 
 const GROUPS = [
   {
@@ -150,6 +170,7 @@ export default function DashboardLayout({ children }) {
   const [user, setUser] = useState(null);
   const [drawer, setDrawer] = useState(false);
   const [voice, setVoice] = useState(false);
+  const live = useLiveConnection();
   const closeVoice = useCallback(() => setVoice(false), []);
 
   useEffect(() => {
@@ -222,9 +243,10 @@ export default function DashboardLayout({ children }) {
               <Link href="/dashboard" className="lg:hidden" aria-label="DiaVita home"><Logo size={28} /></Link>
               <div className="hidden lg:block"><PageSearch /></div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <LiveStatus status={live} />
               <button onClick={() => setVoice(true)} className="chip hidden bg-mint font-semibold text-ink hover:bg-[#a2ebc3] sm:inline-flex">
-                <Mic size={16} /> Speak a reading
+                <Mic size={16} /> Talk to DiaVita
               </button>
               <Link href="/dashboard/help" className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-soft hover:text-ink" aria-label="Help">
                 <CircleHelp size={19} />
@@ -247,7 +269,7 @@ export default function DashboardLayout({ children }) {
             </Link>
           ))}
           <div className="flex justify-center">
-            <button onClick={() => setVoice(true)} className="-mt-5 mb-2 grid h-14 w-14 place-items-center rounded-full bg-aqua text-ink shadow-[0_8px_20px_-6px_rgba(31,111,124,0.6)] ring-4 ring-white" aria-label="Speak a reading">
+            <button onClick={() => setVoice(true)} className="-mt-5 mb-2 grid h-14 w-14 place-items-center rounded-full bg-aqua text-ink shadow-[0_8px_20px_-6px_rgba(31,111,124,0.6)] ring-4 ring-white" aria-label="Talk to DiaVita">
               <Mic size={24} />
             </button>
           </div>

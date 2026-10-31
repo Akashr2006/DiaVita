@@ -6,19 +6,38 @@ import {
   Keyboard, Mic, Pill, Plus, Sparkles, Target, Utensils,
 } from 'lucide-react';
 import { useUser } from '@/components/UserContext';
-import GlucoseChart from '@/components/GlucoseChart';
+import { DailyRangeChart, STATUS, WeekFaces, statusOf } from '@/components/charts';
 import DemoDataButton from '@/components/DemoDataButton';
 import Photo from '@/components/Photo';
-import VoiceEntry from '@/components/VoiceEntry';
-import { REFRESH_EVENT, openVoice } from '@/components/VoiceSheet';
+import { openVoice } from '@/components/VoiceSheet';
 import { Alert, Badge, Empty, Progress, ScoreRing, Section, Spinner, StatCard, TILE_CYCLE } from '@/components/ui';
 import { api, CONTEXT_LABELS, fmtDateTime, fmtDay, glucoseStatus } from '@/lib/api';
+import { useLiveRefresh } from '@/lib/live';
 
 const TIP_LABEL = {
   success: ['Doing well', 'text-mint-700'],
   warning: ['Watch out', 'text-amber-700'],
   danger: ['Act now', 'text-rose-700'],
   info: ['Tip', 'text-brand-700'],
+};
+
+// Big picture buttons for the most common jobs, labelled in English and Tamil
+const ACTIONS = [
+  { label: 'Talk', ta: 'பேசுங்க', icon: Mic, voice: true, tile: 'bg-aqua' },
+  { label: 'Sugar', ta: 'சுகர்', icon: Droplet, href: '/dashboard/glucose', tile: 'bg-sky' },
+  { label: 'Food', ta: 'சாப்பாடு', icon: Utensils, href: '/dashboard/meals', tile: 'bg-mint' },
+  { label: 'Walk', ta: 'நடை', icon: Footprints, href: '/dashboard/activity', tile: 'bg-ice' },
+  { label: 'Tablets', ta: 'மாத்திரை', icon: Pill, href: '/dashboard/medications', tile: 'bg-sky' },
+  { label: 'Report', ta: 'ரிப்போர்ட்', icon: FileText, href: '/dashboard/report', tile: 'bg-mint' },
+];
+
+// One plain sentence for what to do now, by status of the last reading
+const DO_NOW = {
+  verylow: 'Take 15 g of sugar now (3 spoons in water) and check again in 15 minutes.',
+  low: 'Take 15 g of sugar now and check again in 15 minutes.',
+  ok: 'Well done. Keep the same food and walking habits.',
+  high: 'Drink water and take a 10 minute walk.',
+  veryhigh: 'Drink plenty of water. Call your doctor if it stays this high.',
 };
 
 const SMART = [
@@ -95,7 +114,11 @@ function QuickEntry({ onDone, className }) {
           <button className="btn btn-primary w-full"><Plus size={16} /> Save reading</button>
         </form>
       ) : (
-        <VoiceEntry onSaved={(a) => { setAlert(a); onDone(); }} />
+        <button type="button" onClick={openVoice} className="flex flex-col items-center gap-3 rounded-xl bg-gradient-to-br from-sky via-ice to-mint px-4 py-6 text-center transition hover:brightness-[1.03]">
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-aqua text-ink shadow-[0_8px_24px_-8px_rgba(31,111,124,0.6)]"><Mic size={28} /></span>
+          <span className="text-base font-semibold text-ink">Talk to DiaVita</span>
+          <span className="text-xs text-muted">பேசுங்க · बोलिए · "sugar 140 after food"</span>
+        </button>
       )}
       {alert && <Alert type={alert.level} onClose={() => setAlert(null)}>{alert.message}</Alert>}
     </section>
@@ -138,11 +161,8 @@ export default function DashboardHome() {
   const [error, setError] = useState('');
 
   const load = useCallback(() => api('/insights/summary').then(setData).catch((e) => setError(e.message)), []);
-  useEffect(() => {
-    load();
-    window.addEventListener(REFRESH_EVENT, load);
-    return () => window.removeEventListener(REFRESH_EVENT, load);
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
+  useLiveRefresh(load);
 
   if (error) return <Alert type="danger" title="Could not load dashboard">{error}</Alert>;
   if (!data) return <Spinner />;
@@ -152,7 +172,9 @@ export default function DashboardHome() {
   const status = latest && glucoseStatus(latest.value, user.target_min, user.target_max);
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const chartData = glucose.trend.map((d) => ({ label: fmtDay(d.day), value: d.avg }));
+  const trendRows = glucose.trend.map((d) => ({ ...d, label: fmtDay(d.day), full: new Date(`${d.day}T12:00:00`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }) }));
+  const latestStatus = latest && statusOf(latest.value, user.target_min, user.target_max);
+  const LatestFace = latestStatus && STATUS[latestStatus].Face;
 
   const steps = [
     { label: 'Set your targets', done: Boolean(user.weight_kg && user.height_cm), href: '/dashboard/profile' },
@@ -186,6 +208,17 @@ export default function DashboardHome() {
               <div className="mt-1 text-lg font-semibold text-ink">
                 {score >= 75 ? 'Excellent day, keep going!' : score >= 50 ? 'Good progress, a few things left' : 'Let’s improve today'}
               </div>
+              {latest && (
+                <div className="mt-3 flex items-center gap-3 rounded-xl bg-soft p-3 ring-1 ring-line">
+                  <LatestFace size={34} color={STATUS[latestStatus].color} strokeWidth={2.2} aria-hidden="true" className="shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-sm text-ink">
+                      Last sugar <b className="text-lg tabular-nums">{Math.round(latest.value)}</b> · <b>{STATUS[latestStatus].label}</b> <span className="text-muted">({STATUS[latestStatus].ta})</span>
+                    </div>
+                    <div className="text-xs text-muted">{DO_NOW[latestStatus]}</div>
+                  </div>
+                </div>
+              )}
               <div className="mt-4 flex flex-col gap-3">
                 {[['Sugar control', sb.glucose, 40, 'brand'], ['Activity', sb.activity, 25, 'sky'], ['Food', sb.diet, 20, 'violet'], ['Medicines', sb.medication, 15, 'brand']].map(([l, v, m, t]) => (
                   <div key={l}>
@@ -194,15 +227,29 @@ export default function DashboardHome() {
                   </div>
                 ))}
               </div>
-              <div className="mt-5 grid grid-cols-2 gap-2 sm:mt-auto sm:pt-5">
-                <Link href="/dashboard/glucose" className="btn btn-primary"><Droplet size={16} /> Log sugar</Link>
-                <button onClick={openVoice} className="btn btn-soft"><Mic size={16} /> Speak</button>
-              </div>
             </div>
           </div>
         </Section>
 
-        <Section className="order-3" title="Your numbers">
+        <Section className="order-2" title="What do you want to do?">
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+            {ACTIONS.map(({ label, ta, icon: Icon, href, voice, tile }) => {
+              const inner = (
+                <>
+                  <span className={`grid h-14 w-14 place-items-center rounded-2xl text-ink ${tile}`}><Icon size={26} /></span>
+                  <span className="text-[15px] font-semibold leading-5 text-ink">{label}</span>
+                  <span className="text-xs leading-4 text-muted">{ta}</span>
+                </>
+              );
+              const cls = 'card flex flex-col items-center gap-1.5 px-1 py-4 text-center transition hover:border-aqua active:scale-[0.98]';
+              return voice
+                ? <button key={label} type="button" onClick={openVoice} className={cls}>{inner}</button>
+                : <Link key={label} href={href} className={cls}>{inner}</Link>;
+            })}
+          </div>
+        </Section>
+
+        <Section className="order-5" title="Your numbers">
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-2">
             <div className="card p-4 sm:p-5">
               <div className="flex items-center gap-3">
@@ -221,24 +268,30 @@ export default function DashboardHome() {
           </div>
         </Section>
 
-        <Section className="order-4" title="Sugar trend" action={<Link href="/dashboard/glucose" className="text-sm font-semibold text-brand-700 hover:underline">View all</Link>}>
+        <Section className="order-3" title="This week" action={<Link href="/dashboard/glucose" className="text-sm font-semibold text-brand-700 hover:underline">See all readings</Link>}>
           <div className="card p-5">
-            <p className="mb-3 text-xs text-muted">Daily average for the last 14 days. The shaded band is your target range.</p>
-            {chartData.length ? (
-              <GlucoseChart data={chartData} lo={user.target_min} hi={user.target_max} />
+            {trendRows.length ? (
+              <>
+                <p className="mb-3 text-xs text-muted">How each day went, by the day's average sugar.</p>
+                <WeekFaces days={trendRows} lo={user.target_min} hi={user.target_max} />
+                <div className="my-5 h-px bg-line" />
+                <h3 className="text-sm font-semibold text-ink">Last 14 days</h3>
+                <p className="mb-3 text-xs text-muted">Each bar is one day, from the lowest to the highest reading.</p>
+                <DailyRangeChart data={trendRows} lo={user.target_min} hi={user.target_max} height={220} />
+              </>
             ) : (
-              <Empty icon={Droplet} title="No readings yet" text="Add your first sugar reading to see your trend line." />
+              <Empty icon={Droplet} title="No readings yet" text="Add your first sugar reading to see how your week is going." />
             )}
           </div>
         </Section>
 
-        <Section className="order-6" title="Smart features" action={<Link href="/dashboard/help" className="text-sm font-semibold text-brand-700 hover:underline">How they work</Link>}>
+        <Section className="order-7" title="Smart features" action={<Link href="/dashboard/help" className="text-sm font-semibold text-brand-700 hover:underline">How they work</Link>}>
           <div className="grid gap-4 sm:grid-cols-2">
             {SMART.map((item, i) => <SmartCard key={item.title} item={item} i={i} />)}
           </div>
         </Section>
 
-        <Section className="order-7" title="Insights for you">
+        <Section className="order-8" title="Insights for you">
           <div className="grid gap-4 sm:grid-cols-2">
             {tips.map((t, i) => {
               const [label, color] = TIP_LABEL[t.type] || TIP_LABEL.info;
@@ -260,9 +313,9 @@ export default function DashboardHome() {
       </div>
 
       <div className="contents xl:flex xl:flex-col xl:gap-6">
-        <QuickEntry className="order-2" onDone={load} />
-        <GettingStarted className="order-5" steps={steps} />
-        <section className="card order-5 flex flex-col gap-4 p-5">
+        <QuickEntry className="order-4" onDone={load} />
+        <GettingStarted className="order-6" steps={steps} />
+        <section className="card order-6 flex flex-col gap-4 p-5">
           <h3 className="text-base font-semibold text-ink">Today’s goals</h3>
           {[
             { icon: Utensils, label: 'Carbs', v: Math.round(today.meals.carbs), m: user.daily_carb_goal, unit: 'g', tone: 'sky' },
@@ -283,7 +336,7 @@ export default function DashboardHome() {
             {today.meals.calories} kcal eaten · {today.activity.calories} kcal burned
           </div>
         </section>
-        <section className="card order-8 p-5">
+        <section className="card order-9 p-5">
           <div className="mb-4 h-28 overflow-hidden rounded-xl"><Photo name="finger-prick" /></div>
           <div className="flex items-center gap-3">
             <div className="icon-tile h-10 w-10 bg-mint"><CircleHelp size={20} /></div>

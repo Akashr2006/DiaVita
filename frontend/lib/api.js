@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const TOKEN_KEY = 'diavita_token';
 
 export const getToken = () => (typeof window === 'undefined' ? null : localStorage.getItem(TOKEN_KEY));

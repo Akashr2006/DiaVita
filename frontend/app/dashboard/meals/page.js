@@ -5,6 +5,7 @@ import { Alert, Badge, Empty, PageHeader, Spinner } from '@/components/ui';
 import SpikePredictor from '@/components/SpikePredictor';
 import { useUser } from '@/components/UserContext';
 import { api, fmtDateTime, giLevel } from '@/lib/api';
+import { useLiveRefresh } from '@/lib/live';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
 const RATING = { low: { tone: 'green', text: 'Low glycemic load' }, medium: { tone: 'amber', text: 'Medium glycemic load' }, high: { tone: 'red', text: 'High glycemic load' } };
@@ -31,6 +32,10 @@ export default function MealsPage() {
     api('/meals?days=7').then(setMeals);
     api('/smart/spike-model').then(setModel).catch(() => {});
   }, []);
+  useLiveRefresh(() => {
+    api('/meals?days=7').then(setMeals);
+    api('/smart/spike-model').then(setModel).catch(() => {});
+  });
 
   const categories = useMemo(() => ['All', ...new Set(foods.map((f) => f.category))], [foods]);
   const list = foods.filter((f) => (cat === 'All' || f.category === cat) && f.name.toLowerCase().includes(q.toLowerCase()));

@@ -4,6 +4,7 @@ import { ShieldCheck } from 'lucide-react';
 import { useUser } from '@/components/UserContext';
 import { Alert, Badge, PageHeader } from '@/components/ui';
 import { api, fmtDay } from '@/lib/api';
+import { useLiveRefresh } from '@/lib/live';
 
 const ACTIVITY = [
   ['vigorous', 'Vigorous exercise or strenuous work', 0],
@@ -39,6 +40,7 @@ export default function RiskPage() {
   const [error, setError] = useState('');
 
   useEffect(() => { api('/risk').then(setHistory); }, []);
+  useLiveRefresh(() => api('/risk').then(setHistory));
 
   async function submit(e) {
     e.preventDefault();

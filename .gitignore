@@ -4,7 +4,7 @@ node_modules
 .env.*
 !.env.example
 
-# local database created by `npm run db:local`
+# old local database folder from early versions (the app now uses Neon only)
 .localdb
 
 # submission documents are kept off the public repository

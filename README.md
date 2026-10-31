@@ -20,9 +20,15 @@ Most diabetes apps only **store** readings. DiaVita **learns** how each user's o
    *k* (mg/dL rise per unit of glycemic load) from meals without a walk:
    `predicted peak = baseline + k × Σ(item GL × personal food factor) × (1 − walk reduction)`.
    The walk effect is measured from the user's own data by comparing *k* with and without a post-meal walk.
-3. **Voice entry in Tamil, Hindi and English** (dashboard): say "sugar 140 after lunch",
-   "சர்க்கரை 140 சாப்பிட்ட பின்" or "शुगर 140 खाने के बाद". The reading is parsed (Tamil and Devanagari
-   digits included), saved, and the result is read aloud. Uses the browser Web Speech API (Chrome / Edge).
+3. **Talking assistant in Tamil, English and Hindi** (mic button on every screen): the patient talks as
+   they normally would, including mixed Tanglish / Hinglish, e.g. "இப்ப குளுக்கோஸ் செக் பண்ணேன், அத ஆட் பண்ணு".
+   The assistant asks what it still needs ("சுகர் எவ்வளவு வந்துச்சு?", "சாப்பிடுறதுக்கு முன்னாடியா, பின்னாடியா?"),
+   confirms, saves, and replies aloud with advice. It handles sugar readings, meals (with a spike prediction),
+   tablets, walks, "how is my sugar?" and "what can I eat?", understands Tamil number words ("நூத்தி நாப்பது" = 140),
+   and offers big tap-to-answer buttons. The logic is in `frontend/lib/assistant.js`; it uses the browser
+   Web Speech API (Chrome / Edge; Tamil voice on Android, romanised Tamil read aloud where no Tamil voice exists).
+4. **Live sync:** every open screen of a patient (phone, laptop, a family member's device) updates the moment
+   any data changes, using Server-Sent Events (`GET /api/live`).
 
 **Demo data:** Profile → "Load 14-day demo data" (or the banner on an empty dashboard) creates a simulated
 patient with built-in food sensitivities and a walk effect. On that data the model recovers the walk effect
@@ -33,7 +39,7 @@ patient with built-in food sensitivities and a walk effect. On that data the mod
 | Module | What it does |
 |---|---|
 | Auth & Profile | Register / login (JWT + bcrypt), BMI with Asian cut-offs, personal glucose targets |
-| Glucose Log | Fasting / pre-meal / post-meal / bedtime readings, instant hypo & hyper alerts (15-15 rule) |
+| Glucose Log | Fasting / pre-meal / post-meal / bedtime readings, instant hypo & hyper alerts (15-15 rule), daily range chart, time in range, averages by time of check, day-by-day history with the meal each after-meal reading followed, CSV export |
 | Smart Plate | Indian food library with Glycemic Index. Live carbs, calories, Glycemic Load and low-GI swap tips |
 | Activity | Walking, yoga, cycling and more. MET-based calories and a weekly 150-minute goal chart |
 | Medications | Tablet / insulin schedule with a daily "taken" checklist |
@@ -76,8 +82,8 @@ repository; without them the app shows soft palette tiles in their place.
 ## Quick start on this laptop
 
 Double-click **`START-DIAVITA.bat`**. It opens the API and website windows and then the browser.
-The live data is in a **Neon** cloud database (project `diavita`, region Singapore). If `backend/.env`
-points to the local database instead, the launcher also starts it (saved in `backend/.localdb`).
+All data is stored in the **Neon** cloud database (project `diavita`, region Singapore), so the laptop
+needs an internet connection. `http://localhost:5000/api/health` shows `"provider": "Neon PostgreSQL (ap-southeast-1)"`.
 
 ### Demo patients
 `npm run db:seed` (in `backend`) creates six dummy patients, each with 14 days of glucose readings, meals,

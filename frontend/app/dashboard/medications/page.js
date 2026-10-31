@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, Circle, Pill, Plus, Syringe, Trash2 } from 'lucide-react';
 import { Alert, Empty, PageHeader, Progress, Spinner } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useLiveRefresh } from '@/lib/live';
 
 export default function MedicationsPage() {
   const [meds, setMeds] = useState(null);
@@ -10,6 +11,7 @@ export default function MedicationsPage() {
   const [error, setError] = useState('');
 
   useEffect(() => { api('/medications').then(setMeds); }, []);
+  useLiveRefresh(() => api('/medications').then(setMeds));
 
   async function submit(e) {
     e.preventDefault();

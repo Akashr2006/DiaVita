@@ -149,8 +149,10 @@ router.get('/food-response', async (req, res) => {
 router.get('/spike-model', async (req, res) => {
   const { model, walk, foods } = await analyse(req.user.id);
   const { rows } = await db.query(
+    // an after-meal peak is not a starting point for the next meal, so only pre-meal style readings count
     `SELECT value_mgdl::float AS value FROM glucose_readings
-     WHERE user_id = $1 AND recorded_at >= NOW() - INTERVAL '2 hours' ORDER BY recorded_at DESC LIMIT 1`,
+     WHERE user_id = $1 AND context <> 'post_meal' AND recorded_at >= NOW() - INTERVAL '2 hours'
+     ORDER BY recorded_at DESC LIMIT 1`,
     [req.user.id]
   );
   const baseline = rows[0]?.value ?? (await usualBaseline(req.user.id));

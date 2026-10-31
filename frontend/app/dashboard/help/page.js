@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { ArrowRight, Mic, PhoneCall, Volume2 } from 'lucide-react';
 import Accordion from '@/components/Accordion';
 import Photo from '@/components/Photo';
-import { EXAMPLES, LANGS, speak } from '@/components/VoiceEntry';
+import { speakText } from '@/components/Assistant';
+import { ASSISTANT_EXAMPLES, ASSISTANT_LANGS } from '@/lib/assistant';
 import { openVoice } from '@/components/VoiceSheet';
 import { PageHeader, Section } from '@/components/ui';
 import { FAQ, GETTING_STARTED, LOW_SUGAR_STEPS, PAGE_GUIDE, SEE_DOCTOR, SUGAR_RANGES } from '@/lib/help';
@@ -37,23 +38,23 @@ export default function HelpPage() {
             </div>
           </Section>
 
-          <Section title="Speak your reading">
+          <Section title="Talk to DiaVita">
             <div id="voice" className="card scroll-mt-24 p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <div className="h-40 w-full shrink-0 overflow-hidden rounded-xl sm:h-24 sm:w-32"><Photo name="elder-glucometer" /></div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-base font-semibold text-ink">Three simple steps</h3>
-                  <p className="text-sm text-muted">1. Tap the mic. 2. Say the number and when you checked it. 3. Listen to the result.</p>
+                  <h3 className="text-base font-semibold text-ink">Just talk, like to a person</h3>
+                  <p className="text-sm text-muted">Tap the mic and say what you did. DiaVita asks what it needs ("How much?", "Before or after food?"), reads the answer aloud and saves it after you say yes.</p>
                 </div>
                 <button onClick={openVoice} className="btn btn-primary shrink-0"><Mic size={16} /> Try it now</button>
               </div>
               <div className="mt-5 grid gap-3 md:grid-cols-3">
-                {LANGS.map((l) => (
-                  <div key={l.code} className="rounded-xl bg-soft p-3 ring-1 ring-line">
-                    <div className="eyebrow mb-2 text-brand-700">{l.short}</div>
+                {ASSISTANT_LANGS.map((l) => (
+                  <div key={l.code} className="min-w-0 rounded-xl bg-soft p-3 ring-1 ring-line">
+                    <div className="eyebrow mb-2 text-brand-700">{l.label}</div>
                     <div className="flex flex-col gap-1.5">
-                      {EXAMPLES[l.code].map((ex) => (
-                        <button key={ex} onClick={() => speak(ex, l.code)} title="Hear how to say it"
+                      {ASSISTANT_EXAMPLES[l.code].map((ex) => (
+                        <button key={ex} onClick={() => speakText(l.code, ex)} title="Hear how to say it"
                           className="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-2 text-left text-[13px] text-ink ring-1 ring-line hover:ring-aqua">
                           <span className="min-w-0 truncate">{ex}</span>
                           <Volume2 size={14} className="shrink-0 text-brand-600" />
@@ -63,7 +64,7 @@ export default function HelpPage() {
                   </div>
                 ))}
               </div>
-              <p className="mt-4 text-xs text-muted">Tap any example to hear it. Voice works in Chrome or Edge; allow the microphone when asked.</p>
+              <p className="mt-4 text-xs text-muted">Tap any example to hear it. Voice works in Chrome or Edge; allow the microphone when asked. You can also type, or tap the big buttons.</p>
             </div>
           </Section>
 

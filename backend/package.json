@@ -8,7 +8,6 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "db:migrate": "node src/migrate.js",
-    "db:local": "pglite-server -d ./.localdb -p 5433 -m 10",
     "db:seed": "node src/seed-patients.js"
   },
   "dependencies": {
@@ -20,9 +19,5 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.12.1",
     "pg": "^8.23.1"
-  },
-  "devDependencies": {
-    "@electric-sql/pglite": "^0.5.10",
-    "@electric-sql/pglite-socket": "^0.2.13"
   }
 }

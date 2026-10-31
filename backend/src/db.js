@@ -1,17 +1,17 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL is missing. Copy .env.example to .env and paste your Neon connection string.');
+// DiaVita stores all data in Neon (serverless PostgreSQL). Nothing is kept in a local database.
+const url = process.env.DATABASE_URL || '';
+if (!/\.neon\.tech\//.test(url)) {
+  console.error('DATABASE_URL must be your Neon connection string (Neon Console -> Connect -> Node.js). See backend/.env.example.');
   process.exit(1);
 }
 
-const isLocal = /localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL);
-
-// Neon requires SSL; the connection string from the Neon console already has sslmode=require.
+// Neon only accepts encrypted connections; the certificate is always verified
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: isLocal ? false : { rejectUnauthorized: false },
+  connectionString: url,
+  ssl: { rejectUnauthorized: true },
   max: 10,
   idleTimeoutMillis: 30000,
 });
@@ -21,6 +21,8 @@ pool.on('error', (err) => console.error('Postgres pool error:', err.message));
 module.exports = {
   pool,
   query: (text, params) => pool.query(text, params),
+  // shown by /api/health, e.g. "Neon PostgreSQL (ap-southeast-1)"
+  provider: `Neon PostgreSQL (${(url.match(/\.([a-z]{2}-[a-z]+-\d)\.aws\.neon\.tech/) || [])[1] || 'cloud'})`,
 };
 
 // "Today" in the user's local timezone (Neon servers run in UTC)

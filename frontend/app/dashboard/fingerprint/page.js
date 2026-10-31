@@ -4,6 +4,7 @@ import { Brain, Fingerprint, Footprints, TrendingDown, TrendingUp, Utensils } fr
 import DemoDataButton from '@/components/DemoDataButton';
 import { Badge, Empty, PageHeader, Spinner } from '@/components/ui';
 import { api, fmtDateTime } from '@/lib/api';
+import { useLiveRefresh } from '@/lib/live';
 
 const VERDICT = {
   friendly: { tone: 'green', label: 'Friendly', bar: 'bg-mint-300' },
@@ -27,6 +28,7 @@ export default function FingerprintPage() {
   const [error, setError] = useState('');
 
   useEffect(() => { api('/smart/food-response').then(setData).catch((e) => setError(e.message)); }, []);
+  useLiveRefresh(() => api('/smart/food-response').then(setData).catch(() => {}));
 
   if (error) return <Empty title="Could not load Food Fingerprint" text={error} />;
   if (!data) return <Spinner />;

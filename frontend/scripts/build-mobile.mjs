@@ -4,7 +4,7 @@
 //        NEXT_PUBLIC_API_URL=... npm run build:mobile
 import { spawnSync } from 'node:child_process';
 
-const ONLINE_API = 'https://diavita-api.onrender.com/api';
+const ONLINE_API = 'https://diavita-api.vercel.app/api';
 
 const env = {
   ...process.env,

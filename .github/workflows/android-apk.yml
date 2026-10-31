@@ -22,8 +22,8 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     env:
-      # the online API the phone app talks to (set the DIAVITA_API_URL repository variable if Render gave another address)
-      NEXT_PUBLIC_API_URL: ${{ vars.DIAVITA_API_URL || 'https://diavita-api.onrender.com/api' }}
+      # the online API the phone app talks to (set the DIAVITA_API_URL repository variable if the API moves to another address)
+      NEXT_PUBLIC_API_URL: ${{ vars.DIAVITA_API_URL || 'https://diavita-api.vercel.app/api' }}
     steps:
       - uses: actions/checkout@v4
 

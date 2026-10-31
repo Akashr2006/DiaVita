@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArrowRight, Mic, PhoneCall, Volume2 } from 'lucide-react';
 import Accordion from '@/components/Accordion';
 import Photo from '@/components/Photo';
-import { speakText } from '@/components/Assistant';
+import { speak } from '@/lib/voice';
 import { ASSISTANT_EXAMPLES, ASSISTANT_LANGS } from '@/lib/assistant';
 import { openVoice } from '@/components/VoiceSheet';
 import { PageHeader, Section } from '@/components/ui';
@@ -54,7 +54,7 @@ export default function HelpPage() {
                     <div className="eyebrow mb-2 text-brand-700">{l.label}</div>
                     <div className="flex flex-col gap-1.5">
                       {ASSISTANT_EXAMPLES[l.code].map((ex) => (
-                        <button key={ex} onClick={() => speakText(l.code, ex)} title="Hear how to say it"
+                        <button key={ex} onClick={() => speak(l.code, ex)} title="Hear how to say it"
                           className="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-2 text-left text-[13px] text-ink ring-1 ring-line hover:ring-aqua">
                           <span className="min-w-0 truncate">{ex}</span>
                           <Volume2 size={14} className="shrink-0 text-brand-600" />

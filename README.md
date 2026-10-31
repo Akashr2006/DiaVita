@@ -27,6 +27,11 @@ Most diabetes apps only **store** readings. DiaVita **learns** how each user's o
    tablets, walks, "how is my sugar?" and "what can I eat?", understands Tamil number words ("நூத்தி நாப்பது" = 140),
    and offers big tap-to-answer buttons. The logic is in `frontend/lib/assistant.js`; it uses the browser
    Web Speech API (Chrome / Edge; Tamil voice on Android, romanised Tamil read aloud where no Tamil voice exists).
+   **Natural voice:** with a Sarvam AI key (`SARVAM_API_KEY` in `backend/.env`, free credits at
+   https://dashboard.sarvam.ai) replies are spoken by Sarvam's Bulbul neural voice, which sounds natural in
+   Tamil, Hindi and Indian English on every device. Without a key the best voice built into the phone or
+   browser is used (Android phones have a Tamil voice; most Windows laptops do not). Replies, which can include
+   the patient's first name and sugar values, are sent to Sarvam only when a key is set.
 4. **Live sync:** every open screen of a patient (phone, laptop, a family member's device) updates the moment
    any data changes, using Server-Sent Events (`GET /api/live`).
 

@@ -4,6 +4,7 @@ import { Keyboard, Mic, Send, Square, Volume2, VolumeX } from 'lucide-react';
 import { LogoMark } from '@/components/Logo';
 import { ASSISTANT_LANGS, converse, newConversation, quickReplies } from '@/lib/assistant';
 import { refreshAll } from '@/lib/live';
+import { speak, stopSpeaking, voiceQuality } from '@/lib/voice';
 
 const store = {
   get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
@@ -16,26 +17,6 @@ const UI = {
   hi: { listening: 'सुन रही हूँ… बोलिए', tap: 'माइक दबाकर बोलिए', thinking: 'सोच रही हूँ…', type: 'यहाँ टाइप करें', noMic: 'इस ब्राउज़र में माइक नहीं है। नीचे टाइप करें या बटन दबाएँ।', denied: 'माइक की अनुमति नहीं है। ब्राउज़र में माइक चालू करें।' },
 };
 
-// Speak a reply. Tamil is read in Tamil when the phone has a Tamil voice; otherwise the romanised
-// version is read by an Indian English voice so the patient still hears it.
-export function speakText(lang, text, roman, onEnd) {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) { onEnd?.(); return; }
-  const voices = window.speechSynthesis.getVoices();
-  const find = (code) => voices.find((v) => v.lang?.toLowerCase().replace('_', '-') === `${code}-in`) || voices.find((v) => v.lang?.toLowerCase().startsWith(code));
-  let voice = find(lang);
-  let say = text;
-  let code = `${lang}-IN`;
-  if (!voice && lang === 'ta' && roman) { voice = find('en'); say = roman; code = 'en-IN'; }
-  const u = new SpeechSynthesisUtterance(say);
-  u.lang = voice?.lang || code;
-  if (voice) u.voice = voice;
-  u.rate = 0.92;
-  u.onend = () => onEnd?.();
-  u.onerror = () => onEnd?.();
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(u);
-}
-
 export default function Assistant({ user }) {
   const [lang, setLangState] = useState('ta');
   const [messages, setMessages] = useState([]);
@@ -47,6 +28,7 @@ export default function Assistant({ user }) {
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [typed, setTyped] = useState('');
   const [micState, setMicState] = useState('ok'); // ok | none | denied
+  const [voice, setVoice] = useState(null); // natural | device | basic | none
   const convoRef = useRef(convo);
   const cacheRef = useRef({});
   const recRef = useRef(null);
@@ -58,12 +40,21 @@ export default function Assistant({ user }) {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages, interim, busy]);
 
+  // which voice the patient will hear (browsers load their voice list a moment after the page)
+  useEffect(() => {
+    let alive = true;
+    const check = () => voiceQuality(lang).then((q) => alive && setVoice(q));
+    check();
+    window.speechSynthesis?.addEventListener?.('voiceschanged', check);
+    return () => { alive = false; window.speechSynthesis?.removeEventListener?.('voiceschanged', check); };
+  }, [lang]);
+
   const stopListening = useCallback(() => { recRef.current?.abort(); recRef.current = null; setListening(false); setInterim(''); }, []);
 
   const startListening = useCallback(() => {
     const SR = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
     if (!SR) { setMicState('none'); return; }
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     recRef.current?.abort();
     const rec = new SR();
     rec.lang = ASSISTANT_LANGS.find((l) => l.code === settingsRef.current.lang).speech;
@@ -106,7 +97,7 @@ export default function Assistant({ user }) {
     // keep the conversation hands-free: listen again after a question, stop after goodbye
     const listenAfter = !r.done && (r.state.step !== 'idle' || r.saved || shown || input.intent === 'hello');
     const next = () => { if (listenAfter) startListening(); };
-    if (read) speakText(l, r.reply.text, r.reply.roman, next);
+    if (read) speak(l, r.reply.text, r.reply.roman, next);
     else next();
   }, [user, startListening]);
   const handleRef = useRef(handle);
@@ -121,13 +112,13 @@ export default function Assistant({ user }) {
     if (typeof window !== 'undefined' && !(window.SpeechRecognition || window.webkitSpeechRecognition)) setMicState('none');
     window.speechSynthesis?.getVoices();
     const t0 = setTimeout(() => handleRef.current({ intent: 'hello' }), 250);
-    return () => { clearTimeout(t0); recRef.current?.abort(); window.speechSynthesis?.cancel(); };
+    return () => { clearTimeout(t0); recRef.current?.abort(); stopSpeaking(); };
   }, []);
 
   const changeLang = (code) => {
     if (code === lang) return;
     stopListening();
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     store.set('dv-assistant-lang', code);
     setLangState(code);
     settingsRef.current.lang = code;
@@ -138,7 +129,7 @@ export default function Assistant({ user }) {
   };
 
   const toggleRead = () => {
-    setReadAloud((r) => { store.set('dv-voice-read', r ? '0' : '1'); if (r) window.speechSynthesis?.cancel(); return !r; });
+    setReadAloud((r) => { store.set('dv-voice-read', r ? '0' : '1'); if (r) stopSpeaking(); return !r; });
   };
 
   const sendTyped = (e) => {
@@ -168,6 +159,15 @@ export default function Assistant({ user }) {
         </button>
       </div>
 
+      {voice && voice !== 'device' && (
+        <p className={`mt-2 flex items-center gap-1.5 text-xs ${voice === 'natural' ? 'text-mint-700' : 'text-muted'}`}>
+          <Volume2 size={13} className="shrink-0" />
+          {voice === 'natural' ? 'Natural voice on (Sarvam AI)'
+            : voice === 'basic' ? 'Basic voice: this device has no Tamil voice. Add a Sarvam AI key for a clear, natural voice.'
+              : 'This device has no voice for this language. Replies are shown as text.'}
+        </p>
+      )}
+
       {/* Conversation */}
       <div className="no-scrollbar mt-3 min-h-[180px] flex-1 space-y-2.5 overflow-y-auto rounded-xl bg-page p-3 ring-1 ring-line" aria-live="polite">
         {messages.map((m, i) => (m.from === 'bot' ? (
@@ -175,7 +175,7 @@ export default function Assistant({ user }) {
             <LogoMark size={26} className="mb-0.5" />
             <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-white px-3.5 py-2.5 text-[15px] leading-6 text-ink shadow-sm ring-1 ring-line">
               {m.text}
-              <button type="button" onClick={() => speakText(lang, m.text, m.roman)} className="ml-1.5 inline-grid h-6 w-6 translate-y-1 place-items-center rounded-md text-brand-600 hover:bg-soft" aria-label="Read this again">
+              <button type="button" onClick={() => speak(lang, m.text, m.roman)} className="ml-1.5 inline-grid h-6 w-6 translate-y-1 place-items-center rounded-md text-brand-600 hover:bg-soft" aria-label="Read this again">
                 <Volume2 size={14} />
               </button>
             </div>

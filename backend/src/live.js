@@ -37,9 +37,12 @@ function publish(userId, payload) {
   for (const res of set) res.write(msg);
 }
 
+// Areas whose POST does not change the patient's data (turning a reply into speech)
+const NOT_DATA = ['tts'];
+
 // Announces every successful write (add, change, delete) to that patient's open screens
 function announceWrites(req, res, next) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && !NOT_DATA.includes(req.originalUrl.split('/')[2])) {
     res.on('finish', () => {
       if (req.user && res.statusCode < 400) publish(req.user.id, { area: req.originalUrl.split('/')[2], method: req.method });
     });

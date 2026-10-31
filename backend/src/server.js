@@ -31,6 +31,7 @@ app.use('/api/risk', requireAuth, require('./routes/risk'));
 app.use('/api/insights', requireAuth, require('./routes/insights'));
 app.use('/api/smart', requireAuth, require('./routes/smart'));
 app.use('/api/demo', requireAuth, require('./routes/demo'));
+app.use('/api/tts', requireAuth, require('./routes/tts'));
 
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 

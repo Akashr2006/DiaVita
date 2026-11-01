@@ -120,6 +120,7 @@ async function connect() {
     return { status: r.status, type: blob.type, bytes: blob.size, fetchedMs: fetched, played, duration: audio.duration, position: audio.currentTime, error: audio.error?.message, events };`));
 
   // ---- the real assistant, as a patient uses it ----
+  page2.console.length = 0; // from here on, only what the assistant itself does
   await page2.run(`window.dispatchEvent(new CustomEvent('diavita:open-voice')); return 1`);
   await sleep(4000);
   shot('2-assistant-open');
@@ -133,13 +134,23 @@ async function connect() {
   shot('4-assistant-after-silence');
   note('mic after 14 s of silence (must not be stuck)', await page2.run(`return { mic: ${micInfo}, text: ${status} }`));
   let stopped = null;
+  let windowSeen = null;
   const t1 = Date.now();
-  for (let i = 0; i < 26 && !stopped; i += 1) {
+  for (let i = 0; i < 30 && !stopped; i += 1) {
     await sleep(2000);
+    const top = sh('adb shell dumpsys activity activities | grep -m1 -E "topResumedActivity" || true');
+    if (!windowSeen && !top.includes(PKG)) {
+      windowSeen = { afterMs: Date.now() - t1, top: top.slice(0, 120) };
+      shot('4a-window-opened-by-assistant');
+      sh('adb shell input keyevent KEYCODE_BACK');
+      await sleep(1500);
+    }
     const m = await page2.run(`return { label: ${micInfo}.label, text: ${status} }`);
     if (m?.label === 'Speak') stopped = m;
   }
-  note('mic stops by itself after silence', { stoppedAfterMs: stopped ? Date.now() - t1 : null, message: stopped?.text?.slice(-2, -1)[0] });
+  note('assistant reached the recognizer', page2.console.some((l) => l.includes('SpeechRecognition.start')));
+  note('assistant opened the speech window by itself', windowSeen);
+  note('mic ended by itself after silence', { stoppedAfterMs: stopped ? Date.now() - t1 : null, message: stopped?.text?.slice(-2, -1)[0] });
   shot('4b-after-mic-stops');
   await sleep(1000);
   const direct = page2.run(`return await ${within(12000, native('SpeechRecognition', 'start', { language: 'ta-IN', maxResults: 1, partialResults: false, popup: true }))}`);
@@ -182,6 +193,9 @@ async function connect() {
 
   note('app console', [...new Set(page2.console)].slice(-30));
   const log = sh(`adb logcat -d -v brief`);
+  const logLines = log.split(/\r?\n/);
+  note('plugin promise errors in the log (must be 0)', logLines.filter((l) => l.includes('.then()" is not implemented')).length);
+  note('app crashes in the log (must be 0)', logLines.filter((l) => l.includes('FATAL EXCEPTION')).length);
   fs.writeFileSync(`${OUT}/logcat.txt`, log);
   console.log('\n--- logcat (voice related) ---');
   console.log(log.split('\n').filter((l) => /Capacitor\/|SpeechRecogni|TextToSpeech|TTS|RecognitionService|FATAL|AndroidRuntime|E\/chromium|Permission/i.test(l)).slice(-70).join('\n'));

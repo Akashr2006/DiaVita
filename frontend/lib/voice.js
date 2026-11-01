@@ -5,7 +5,7 @@ import { API_URL, getToken } from '@/lib/api';
 import { isNativeApp } from '@/lib/speech';
 
 // loaded only inside the Android app (see lib/speech.js)
-const tts = () => import('@capacitor-community/text-to-speech').then((m) => m.TextToSpeech);
+const ttsModule = () => import('@capacitor-community/text-to-speech');
 
 let statusPromise = null;
 let current = null; // the natural-voice clip that is playing
@@ -36,12 +36,12 @@ export function stopSpeaking() {
   speechRun += 1;
   if (current) { current.pause(); current = null; }
   if (typeof window === 'undefined') return;
-  if (isNativeApp()) tts().then((t) => t.stop()).catch(() => {});
+  if (isNativeApp()) ttsModule().then((m) => m.TextToSpeech.stop()).catch(() => {});
   else window.speechSynthesis?.cancel();
 }
 
 // Android app: does the phone have a voice for this language? (Most have Google's Tamil, Hindi and English voices.)
-const nativeSupports = (code) => tts().then((t) => t.isLanguageSupported({ lang: code })).then((r) => r.supported).catch(() => false);
+const nativeSupports = (code) => ttsModule().then((m) => m.TextToSpeech.isLanguageSupported({ lang: code })).then((r) => r.supported).catch(() => false);
 
 // Resolves once the clip has started; throws if it cannot play, and the caller then uses a built-in voice
 async function playNatural(lang, text, stillWanted, onEnd) {
@@ -127,7 +127,7 @@ async function speakNative(lang, text, roman, stillWanted, onEnd) {
     say = roman;
   }
   if (!stillWanted()) return;
-  try { await (await tts()).speak({ text: say, lang: code, rate: 0.95, pitch: 1.0, volume: 1.0, queueStrategy: 0 }); } catch { /* stopped or no engine */ }
+  try { await (await ttsModule()).TextToSpeech.speak({ text: say, lang: code, rate: 0.95, pitch: 1.0, volume: 1.0, queueStrategy: 0 }); } catch { /* stopped or no engine */ }
   onEnd?.();
 }
 

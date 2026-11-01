@@ -4,7 +4,9 @@
 // The Android shell injects window.Capacitor. The plugin is loaded only there, and only when needed:
 // it touches `window` when imported, which would break building the pages ahead of time.
 export const isNativeApp = () => typeof window !== 'undefined' && Boolean(window.Capacitor?.isNativePlatform?.());
-const nativeSpeech = () => import('@capacitor-community/speech-recognition').then((m) => m.SpeechRecognition);
+// Keep the plugin inside the imported module object: a Capacitor plugin answers every property with a native call,
+// "then" included, so a promise that resolves to the plugin itself never finishes.
+const speechModule = () => import('@capacitor-community/speech-recognition');
 
 export function speechInputSupported() {
   if (typeof window === 'undefined') return false;
@@ -87,7 +89,7 @@ function nativeRecognizer(lang, { onFinal, onError, onEnd }) {
     if (!aborted && !ended && kind !== 'cancelled') onError?.(kind);
     finish();
   };
-  const stopNative = () => { nativeSpeech().then((s) => s.stop()).catch(() => {}); };
+  const stopNative = () => { speechModule().then((m) => m.SpeechRecognition.stop()).catch(() => {}); };
 
   // Listen without any window. Rejects as 'failed' if the recognizer never answers (seen on Android 14).
   const listenQuietly = async (NativeSpeech) => {
@@ -98,7 +100,7 @@ function nativeRecognizer(lang, { onFinal, onError, onEnd }) {
     });
     giveUp(SPEECH_START_MS);
     try {
-      handle = await NativeSpeech.addListener('listeningState', ({ status }) => { giveUp(status === 'started' ? LISTEN_LIMIT_MS : RESULT_WAIT_MS); });
+      handle = NativeSpeech.addListener('listeningState', ({ status }) => { giveUp(status === 'started' ? LISTEN_LIMIT_MS : RESULT_WAIT_MS); });
       return await Promise.race([NativeSpeech.start({ language: lang, maxResults: 1, partialResults: false, popup: false }), silent]);
     } finally {
       clearTimeout(timer);
@@ -114,7 +116,7 @@ function nativeRecognizer(lang, { onFinal, onError, onEnd }) {
   return {
     async start() {
       try {
-        const NativeSpeech = await nativeSpeech();
+        const NativeSpeech = (await speechModule()).SpeechRecognition;
         const { available } = await NativeSpeech.available();
         let perm = await NativeSpeech.checkPermissions();
         if (perm.speechRecognition !== 'granted') perm = await NativeSpeech.requestPermissions();

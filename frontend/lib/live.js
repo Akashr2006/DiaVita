@@ -24,7 +24,7 @@ export function useLiveRefresh(load, { everyMs = 60000 } = {}) {
   }, [everyMs]);
 }
 
-const POLL_MS = 4000;
+const POLL_MS = 3000;
 
 // Live sync for an open dashboard. Returns 'connecting' | 'live' | 'offline'.
 // A normal server pushes changes over one Server-Sent Events connection; the API on Vercel cannot keep
@@ -72,9 +72,12 @@ export function useLiveConnection() {
       if (v?.stream && typeof EventSource !== 'undefined') stream();
       else timer = setInterval(check, POLL_MS);
     });
+    // back on the screen: catch up at once instead of waiting for the next check
+    document.addEventListener('visibilitychange', check);
     return () => {
       stopped = true;
       clearInterval(timer);
+      document.removeEventListener('visibilitychange', check);
       es?.close();
     };
   }, []);

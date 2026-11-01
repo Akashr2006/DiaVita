@@ -11,7 +11,7 @@ const live = require('./live');
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',').map((o) => o.trim()), credentials: true }));
+app.use(cors({ origin: (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',').map((o) => o.trim()), credentials: true, maxAge: 86400 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan('dev'));
 

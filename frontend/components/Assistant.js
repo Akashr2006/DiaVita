@@ -13,9 +13,9 @@ const store = {
 };
 
 const UI = {
-  ta: { listening: 'கேட்டுக்கிட்டு இருக்கேன்… பேசுங்க', tap: 'மைக்கை அழுத்தி பேசுங்க', thinking: 'யோசிக்கிறேன்…', type: 'இங்கே டைப் பண்ணலாம்', noMic: 'இந்த பிரவுசர்ல மைக் இல்ல. கீழே டைப் பண்ணுங்க, இல்ல பட்டனை அழுத்துங்க.', denied: 'மைக் அனுமதி இல்ல. பிரவுசர்ல மைக்கை அனுமதிங்க.', deniedApp: 'மைக் அனுமதி இல்ல. போன் Settings → Apps → DiaVita-ல மைக்கை அனுமதிங்க.', nomatch: 'சரியா கேட்கல. மைக்கை அழுத்தி திரும்ப பேசுங்க.', network: 'இன்டர்நெட் சரியில்ல. திரும்ப முயற்சி பண்ணுங்க, இல்ல கீழே டைப் பண்ணுங்க.', failed: 'இந்த போன்ல இந்த மொழிக்கு குரல் பதிவு வேலை செய்யல. கீழே டைப் பண்ணுங்க, இல்ல பட்டனை அழுத்துங்க.' },
-  en: { listening: 'Listening… please speak', tap: 'Tap the mic and speak', thinking: 'Thinking…', type: 'Type here instead', noMic: 'This browser has no microphone support. Type below or tap a button.', denied: 'Microphone is blocked. Please allow it in the browser.', deniedApp: 'Microphone is blocked. Allow it in phone Settings → Apps → DiaVita.', nomatch: 'I could not hear that clearly. Tap the mic and speak again.', network: 'The internet connection is weak. Try again, or type below.', failed: 'Voice input for this language is not working on this phone. Type below or tap a button.' },
-  hi: { listening: 'सुन रही हूँ… बोलिए', tap: 'माइक दबाकर बोलिए', thinking: 'सोच रही हूँ…', type: 'यहाँ टाइप करें', noMic: 'इस ब्राउज़र में माइक नहीं है। नीचे टाइप करें या बटन दबाएँ।', denied: 'माइक की अनुमति नहीं है। ब्राउज़र में माइक चालू करें।', deniedApp: 'माइक की अनुमति नहीं है। फ़ोन Settings → Apps → DiaVita में माइक चालू करें।', nomatch: 'ठीक से सुनाई नहीं दिया। माइक दबाकर फिर बोलिए।', network: 'इंटरनेट कमज़ोर है। फिर कोशिश करें या नीचे टाइप करें।', failed: 'इस फ़ोन पर इस भाषा में आवाज़ पहचान नहीं चल रही। नीचे टाइप करें या बटन दबाएँ।' },
+  ta: { listening: 'கேட்டுக்கிட்டு இருக்கேன்… பேசுங்க', tap: 'மைக்கை அழுத்தி பேசுங்க', thinking: 'யோசிக்கிறேன்…', type: 'இங்கே டைப் பண்ணலாம்', noMic: 'இந்த பிரவுசர்ல மைக் இல்ல. கீழே டைப் பண்ணுங்க, இல்ல பட்டனை அழுத்துங்க.', denied: 'மைக் அனுமதி இல்ல. பிரவுசர்ல மைக்கை அனுமதிங்க.', deniedApp: 'மைக் அனுமதி இல்ல. போன் Settings → Apps → DiaVita-ல மைக்கை அனுமதிங்க.', nomatch: 'சரியா கேட்கல. மைக்கை அழுத்தி திரும்ப பேசுங்க.', network: 'இன்டர்நெட் சரியில்ல. திரும்ப முயற்சி பண்ணுங்க, இல்ல கீழே டைப் பண்ணுங்க.', failed: 'இந்த போன்ல இந்த மொழிக்கு குரல் பதிவு வேலை செய்யல. கீழே டைப் பண்ணுங்க, இல்ல பட்டனை அழுத்துங்க.', failedWeb: 'இந்த பிரவுசர்ல குரல் பதிவு வேலை செய்யல. Chrome-ல திறங்க, இல்ல கீழே டைப் பண்ணுங்க.' },
+  en: { listening: 'Listening… please speak', tap: 'Tap the mic and speak', thinking: 'Thinking…', type: 'Type here instead', noMic: 'This browser has no microphone support. Type below or tap a button.', denied: 'Microphone is blocked. Please allow it in the browser.', deniedApp: 'Microphone is blocked. Allow it in phone Settings → Apps → DiaVita.', nomatch: 'I could not hear that clearly. Tap the mic and speak again.', network: 'The internet connection is weak. Try again, or type below.', failed: 'Voice input for this language is not working on this phone. Type below or tap a button.', failedWeb: 'Voice input is not working in this browser. Open DiaVita in Chrome, or type below.' },
+  hi: { listening: 'सुन रही हूँ… बोलिए', tap: 'माइक दबाकर बोलिए', thinking: 'सोच रही हूँ…', type: 'यहाँ टाइप करें', noMic: 'इस ब्राउज़र में माइक नहीं है। नीचे टाइप करें या बटन दबाएँ।', denied: 'माइक की अनुमति नहीं है। ब्राउज़र में माइक चालू करें।', deniedApp: 'माइक की अनुमति नहीं है। फ़ोन Settings → Apps → DiaVita में माइक चालू करें।', nomatch: 'ठीक से सुनाई नहीं दिया। माइक दबाकर फिर बोलिए।', network: 'इंटरनेट कमज़ोर है। फिर कोशिश करें या नीचे टाइप करें।', failed: 'इस फ़ोन पर इस भाषा में आवाज़ पहचान नहीं चल रही। नीचे टाइप करें या बटन दबाएँ।', failedWeb: 'इस ब्राउज़र में आवाज़ पहचान नहीं चल रही। Chrome में खोलें या नीचे टाइप करें।' },
 };
 
 export default function Assistant({ user }) {
@@ -169,7 +169,7 @@ export default function Assistant({ user }) {
       )}
 
       {/* Conversation */}
-      <div className="no-scrollbar mt-3 min-h-[180px] flex-1 space-y-2.5 overflow-y-auto rounded-xl bg-page p-3 ring-1 ring-line" aria-live="polite">
+      <div className="no-scrollbar mt-3 min-h-[96px] flex-1 space-y-2.5 overflow-y-auto rounded-xl bg-page p-3 ring-1 ring-line" aria-live="polite">
         {messages.map((m, i) => (m.from === 'bot' ? (
           <div key={i} className="flex items-end gap-2">
             <LogoMark size={26} className="mb-0.5" />
@@ -201,7 +201,7 @@ export default function Assistant({ user }) {
 
       {/* Big answer buttons */}
       {chips.length > 0 && (
-        <div className={`mt-3 grid gap-2 ${chips.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
+        <div className={`no-scrollbar mt-3 grid max-h-[24dvh] shrink-0 gap-2 overflow-y-auto ${chips.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
           {chips.map((c) => (
             <button key={c.label} type="button" disabled={busy}
               onClick={() => { stopListening(); handle(c.input, c.label); }}
@@ -214,7 +214,7 @@ export default function Assistant({ user }) {
       )}
 
       {/* Mic */}
-      <div className="mt-4 flex items-center justify-center gap-4">
+      <div className="mt-3 flex shrink-0 items-center justify-center gap-4">
         <button type="button" onClick={() => setShowKeyboard((k) => !k)} className="grid h-11 w-11 place-items-center rounded-full bg-soft text-muted ring-1 ring-line hover:text-ink" aria-label="Type instead">
           <Keyboard size={18} />
         </button>
@@ -227,12 +227,12 @@ export default function Assistant({ user }) {
         </button>
         <span className="w-11" />
       </div>
-      <p className="mt-2 text-center text-sm font-medium text-muted">
-        {listening ? t.listening : micState === 'ok' ? t.tap : micState === 'denied' && isNativeApp() ? t.deniedApp : micState === 'none' ? t.noMic : t[micState]}
+      <p className="mt-2 shrink-0 text-center text-sm font-medium text-muted">
+        {listening ? t.listening : micState === 'ok' ? t.tap : micState === 'denied' && isNativeApp() ? t.deniedApp : micState === 'failed' && !isNativeApp() ? t.failedWeb : micState === 'none' ? t.noMic : t[micState]}
       </p>
 
       {(showKeyboard || !['ok', 'nomatch'].includes(micState)) && (
-        <form onSubmit={sendTyped} className="mt-3 flex gap-2">
+        <form onSubmit={sendTyped} className="mt-3 flex shrink-0 gap-2">
           <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} className="input" aria-label="Type a message" />
           <button className="btn btn-primary shrink-0 px-3" aria-label="Send"><Send size={18} /></button>
         </form>

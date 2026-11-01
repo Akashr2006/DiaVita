@@ -7,7 +7,7 @@ const PKG = 'app.diavita.mobile';
 const OUT = 'android-test-results';
 fs.mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const sh = (cmd) => execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+const sh = (cmd) => execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 }).trim();
 const shot = (name) => { try { sh(`adb exec-out screencap -p > ${OUT}/${name}.png`); } catch { /* best effort */ } };
 const report = {};
 const note = (key, value) => { report[key] = value; console.log(`${key}: ${JSON.stringify(value)}`); };
@@ -92,6 +92,8 @@ async function connect() {
   shot('1-dashboard');
 
   // ---- plugins, called directly ----
+  note('webview', await page2.run('return navigator.userAgent'));
+  note('voice input on this phone', await page2.run(`return await ${within(10000, native('DiaSpeech', 'check'))}`));
   note('speech available', await page2.run(`return await ${within(10000, native('SpeechRecognition', 'available'))}`));
   note('speech permission', await page2.run(`return await ${within(10000, native('SpeechRecognition', 'checkPermissions'))}`));
   for (const language of ['en-IN', 'ta-IN']) {
@@ -123,12 +125,50 @@ async function connect() {
   shot('2-assistant-open');
   const status = `[...document.querySelectorAll('[role=dialog] p')].map((p) => p.innerText).filter(Boolean).slice(-6)`;
   note('assistant after opening', await page2.run(`return ${status}`));
-  await sleep(14000);
+  const micInfo = `(() => { const b = document.querySelector('button[aria-label="Speak"], button[aria-label="Stop listening"]'); const r = b?.getBoundingClientRect(); return { label: b?.getAttribute('aria-label'), fullyOnScreen: r ? r.top >= 0 && r.bottom <= innerHeight : false, bottom: Math.round(r?.bottom || 0), screen: innerHeight }; })()`;
+  await sleep(8000);
   shot('3-assistant-after-greeting');
-  note('assistant after greeting', await page2.run(`return { mic: document.querySelector('button[aria-label="Speak"], button[aria-label="Stop listening"]')?.getAttribute('aria-label'), text: ${status} }`));
-  await sleep(25000);
+  note('mic after greeting', await page2.run(`return ${micInfo}`));
+  await sleep(14000);
   shot('4-assistant-after-silence');
-  note('assistant after silence', await page2.run(`return { mic: document.querySelector('button[aria-label="Speak"], button[aria-label="Stop listening"]')?.getAttribute('aria-label'), text: ${status} }`));
+  note('mic after 14 s of silence (must not be stuck)', await page2.run(`return { mic: ${micInfo}, text: ${status} }`));
+  await sleep(14000);
+  note('mic later', await page2.run(`return { mic: ${micInfo}, text: ${status} }`));
+
+  // ---- a patient's sentence goes in, a real record comes out ----
+  await page2.run(`document.querySelector('button[aria-label="Stop listening"]')?.click(); document.querySelector('button[aria-label="Type instead"]')?.click(); return 1`);
+  await sleep(600);
+  const send = (text) => page2.run(`
+    const box = document.querySelector('input[aria-label="Type a message"]');
+    if (!box) return 'no typing box';
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(box, ${JSON.stringify(text)});
+    box.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 200));
+    box.form.requestSubmit();
+    await new Promise((r) => setTimeout(r, 5000));
+    return [...document.querySelectorAll('[role=dialog] [aria-live] > div')].slice(-2).map((d) => d.innerText.slice(0, 140));`);
+  note('assistant: "my sugar is 137"', await send('my sugar is 137'));
+  const api = (path, opts = '') => `fetch('https://diavita-api.vercel.app/api${path}', { headers: { Authorization: 'Bearer ' + localStorage.getItem('diavita_token'), 'Content-Type': 'application/json' }${opts} }).then((r) => r.status === 204 ? 204 : r.json())`;
+  let found = await page2.run(`const g = await ${api('/glucose?days=1')}; const list = Array.isArray(g) ? g : g.readings || []; return list.filter((x) => Number(x.value) === 137).map((x) => x.id)`);
+  if (!found?.length) {
+    note('assistant: confirming', await send('yes'));
+    await sleep(1500);
+    found = await page2.run(`const g = await ${api('/glucose?days=1')}; const list = Array.isArray(g) ? g : g.readings || []; return list.filter((x) => Number(x.value) === 137).map((x) => x.id)`);
+  }
+  note('saved reading found in the database', found);
+  shot('5-assistant-saved');
+  for (const id of found || []) await page2.run(`return await ${api(`/glucose/${id}`, ", method: 'DELETE'")}`);
+
+  // ---- live sync: a reading added elsewhere (the laptop) shows up in the app by itself ----
+  await page2.run(`document.querySelector('[role=dialog] button[aria-label="Close"]')?.click(); return 1`);
+  await sleep(1500);
+  const added = await page2.run(`return await ${api('/glucose', ", method: 'POST', body: JSON.stringify({ value: 211, context: 'random', note: 'sync test' })")}`);
+  const t0 = Date.now();
+  let seen = false;
+  for (let i = 0; i < 16 && !seen; i += 1) { await sleep(1000); seen = await page2.run(`return document.body.innerText.includes('211')`); }
+  note('reading from another device appears without reload', { seen, afterMs: Date.now() - t0 });
+  shot('6-live-sync');
+  if (added?.reading?.id) await page2.run(`return await ${api(`/glucose/${added.reading.id}`, ", method: 'DELETE'")}`);
 
   note('app console', [...new Set(page2.console)].slice(-30));
   const log = sh(`adb logcat -d -v brief`);

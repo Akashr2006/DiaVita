@@ -24,20 +24,28 @@ function webRecognizer(lang, { onInterim, onFinal, onError, onEnd }) {
   rec.interimResults = true;
   rec.maxAlternatives = 1;
   let finalText = '';
+  let liveText = '';
+  let reported = false;
   rec.onresult = (e) => {
+    let done = '';
     let live = '';
-    for (const r of e.results) { if (r.isFinal) finalText = r[0].transcript; else live += r[0].transcript; }
-    onInterim?.(finalText || live);
+    for (const r of e.results) { if (r.isFinal) done += r[0].transcript; else live += r[0].transcript; }
+    finalText = done;
+    liveText = live;
+    onInterim?.(`${done} ${live}`.trim());
   };
   rec.onerror = (e) => {
     if (e.error === 'aborted') return;
+    reported = true;
     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') onError?.('denied');
     else if (e.error === 'no-speech') onError?.('nomatch');
-    else if (e.error === 'network') onError?.('network');
-    else onError?.('failed');
+    else onError?.('failed'); // 'network' here means this browser has no speech service (Chrome has one)
   };
   rec.onend = () => {
-    if (finalText.trim()) onFinal?.(finalText);
+    // phone browsers often stop without marking the last words final: those words still count
+    const heard = `${finalText} ${liveText}`.trim();
+    if (heard) onFinal?.(heard);
+    else if (!reported) onError?.('nomatch');
     onEnd?.();
   };
   return {
@@ -57,8 +65,12 @@ function errorKind(err) {
   return 'failed';
 }
 
-const LISTEN_LIMIT_MS = 20000; // Android sometimes never answers: the mic must not stay "listening" forever
-const POPUP_LIMIT_MS = 60000;
+const SPEECH_START_MS = 10000; // the recognizer has this long to hear something, or to say why it cannot
+const LISTEN_LIMIT_MS = 30000; // the longest one sentence may take once the patient is speaking
+const WINDOW_LIMIT_MS = 60000;
+
+// Does this phone have Google's speech window? It handles Tamil and Hindi when the default recognizer cannot.
+const hasSpeechWindow = () => window.Capacitor.nativePromise('DiaSpeech', 'check', {}).then((r) => Boolean(r.speechWindow)).catch(() => false);
 
 function nativeRecognizer(lang, { onFinal, onError, onEnd }) {
   let aborted = false;
@@ -75,9 +87,27 @@ function nativeRecognizer(lang, { onFinal, onError, onEnd }) {
     finish();
   };
   const stopNative = () => { nativeSpeech().then((s) => s.stop()).catch(() => {}); };
-  const limit = (ms) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => { stopNative(); fail('failed'); }, ms);
+
+  // Listen without any window. Rejects as 'failed' if the recognizer never answers (seen on Android 14).
+  const listenQuietly = async (NativeSpeech) => {
+    let handle;
+    let giveUp;
+    const silent = new Promise((_, reject) => {
+      giveUp = (ms) => { clearTimeout(timer); timer = setTimeout(() => reject(new Error('recognizer did not answer')), ms); };
+    });
+    giveUp(SPEECH_START_MS);
+    try {
+      handle = await NativeSpeech.addListener('listeningState', ({ status }) => { if (status === 'started') giveUp(LISTEN_LIMIT_MS); });
+      return await Promise.race([NativeSpeech.start({ language: lang, maxResults: 1, partialResults: false, popup: false }), silent]);
+    } finally {
+      clearTimeout(timer);
+      handle?.remove?.();
+    }
+  };
+
+  const listenInWindow = (NativeSpeech) => {
+    timer = setTimeout(() => { stopNative(); fail('failed'); }, WINDOW_LIMIT_MS);
+    return NativeSpeech.start({ language: lang, maxResults: 1, partialResults: false, popup: true });
   };
 
   return {
@@ -85,23 +115,23 @@ function nativeRecognizer(lang, { onFinal, onError, onEnd }) {
       try {
         const NativeSpeech = await nativeSpeech();
         const { available } = await NativeSpeech.available();
-        if (!available) { fail('failed'); return; }
         let perm = await NativeSpeech.checkPermissions();
         if (perm.speechRecognition !== 'granted') perm = await NativeSpeech.requestPermissions();
         if (perm.speechRecognition !== 'granted') { fail('denied'); return; }
         if (aborted || ended) { finish(); return; }
 
-        const listen = (popup) => NativeSpeech.start({ language: lang, maxResults: 1, partialResults: false, popup });
-        // without partial results Android stops by itself when the patient pauses, and returns the final words
-        limit(LISTEN_LIMIT_MS);
         let res;
         try {
-          res = await listen(false);
+          // without partial results Android stops by itself when the patient pauses, and returns the final words
+          if (!available) throw new Error('no default recognizer');
+          res = await listenQuietly(NativeSpeech);
         } catch (err) {
           if (aborted || ended || errorKind(err) !== 'failed') throw err;
-          // some phone brands default to a recognizer without Tamil or Hindi: Google's own speech window has them
-          limit(POPUP_LIMIT_MS);
-          res = await listen(true);
+          stopNative();
+          // the default recognizer cannot do this language or does not answer: use Google's window, if the phone has one
+          if (!(await hasSpeechWindow())) throw err;
+          if (aborted || ended) return;
+          res = await listenInWindow(NativeSpeech);
         }
         if (aborted || ended) return;
         const text = res?.matches?.[0] || '';

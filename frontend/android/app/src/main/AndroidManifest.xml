@@ -35,6 +35,13 @@
         </provider>
     </application>
 
+    <!-- Lets DiaSpeechPlugin find Google's speech window on Android 11 and newer -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+    </queries>
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />

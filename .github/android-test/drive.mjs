@@ -146,15 +146,10 @@ async function connect() {
     await new Promise((r) => setTimeout(r, 200));
     box.form.requestSubmit();
     await new Promise((r) => setTimeout(r, 5000));
-    return [...document.querySelectorAll('[role=dialog] [aria-live] > div')].slice(-2).map((d) => d.innerText.slice(0, 140));`);
-  note('assistant: "my sugar is 137"', await send('my sugar is 137'));
+    return [...document.querySelectorAll('[role=dialog] [aria-live] > div')].map((d) => d.innerText.trim()).filter(Boolean).slice(-1)[0]?.slice(0, 140);`);
+  for (const line of ['my sugar is 137', 'fasting', 'yes']) note(`assistant: "${line}"`, await send(line));
   const api = (path, opts = '') => `fetch('https://diavita-api.vercel.app/api${path}', { headers: { Authorization: 'Bearer ' + localStorage.getItem('diavita_token'), 'Content-Type': 'application/json' }${opts} }).then((r) => r.status === 204 ? 204 : r.json())`;
-  let found = await page2.run(`const g = await ${api('/glucose?days=1')}; const list = Array.isArray(g) ? g : g.readings || []; return list.filter((x) => Number(x.value) === 137).map((x) => x.id)`);
-  if (!found?.length) {
-    note('assistant: confirming', await send('yes'));
-    await sleep(1500);
-    found = await page2.run(`const g = await ${api('/glucose?days=1')}; const list = Array.isArray(g) ? g : g.readings || []; return list.filter((x) => Number(x.value) === 137).map((x) => x.id)`);
-  }
+  const found = await page2.run(`const g = await ${api('/glucose?days=1')}; const list = Array.isArray(g) ? g : g.readings || []; return list.filter((x) => Number(x.value) === 137).map((x) => x.id)`);
   note('saved reading found in the database', found);
   shot('5-assistant-saved');
   for (const id of found || []) await page2.run(`return await ${api(`/glucose/${id}`, ", method: 'DELETE'")}`);

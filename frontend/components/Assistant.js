@@ -201,7 +201,7 @@ export default function Assistant({ user }) {
 
       {/* Big answer buttons */}
       {chips.length > 0 && (
-        <div className={`no-scrollbar mt-3 grid max-h-[24dvh] shrink-0 gap-2 overflow-y-auto ${chips.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
+        <div className={`no-scrollbar mt-3 grid max-h-[23dvh] shrink-0 gap-2 overflow-y-auto ${chips.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
           {chips.map((c) => (
             <button key={c.label} type="button" disabled={busy}
               onClick={() => { stopListening(); handle(c.input, c.label); }}

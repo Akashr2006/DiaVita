@@ -67,6 +67,7 @@ function errorKind(err) {
 
 const SPEECH_START_MS = 10000; // the recognizer has this long to hear something, or to say why it cannot
 const LISTEN_LIMIT_MS = 30000; // the longest one sentence may take once the patient is speaking
+const RESULT_WAIT_MS = 8000; // after the patient stops talking, the words should arrive within this
 const WINDOW_LIMIT_MS = 60000;
 
 // Does this phone have Google's speech window? It handles Tamil and Hindi when the default recognizer cannot.
@@ -97,7 +98,7 @@ function nativeRecognizer(lang, { onFinal, onError, onEnd }) {
     });
     giveUp(SPEECH_START_MS);
     try {
-      handle = await NativeSpeech.addListener('listeningState', ({ status }) => { if (status === 'started') giveUp(LISTEN_LIMIT_MS); });
+      handle = await NativeSpeech.addListener('listeningState', ({ status }) => { giveUp(status === 'started' ? LISTEN_LIMIT_MS : RESULT_WAIT_MS); });
       return await Promise.race([NativeSpeech.start({ language: lang, maxResults: 1, partialResults: false, popup: false }), silent]);
     } finally {
       clearTimeout(timer);

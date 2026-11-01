@@ -132,8 +132,23 @@ async function connect() {
   await sleep(14000);
   shot('4-assistant-after-silence');
   note('mic after 14 s of silence (must not be stuck)', await page2.run(`return { mic: ${micInfo}, text: ${status} }`));
-  await sleep(14000);
-  note('mic later', await page2.run(`return { mic: ${micInfo}, text: ${status} }`));
+  let stopped = null;
+  const t1 = Date.now();
+  for (let i = 0; i < 26 && !stopped; i += 1) {
+    await sleep(2000);
+    const m = await page2.run(`return { label: ${micInfo}.label, text: ${status} }`);
+    if (m?.label === 'Speak') stopped = m;
+  }
+  note('mic stops by itself after silence', { stoppedAfterMs: stopped ? Date.now() - t1 : null, message: stopped?.text?.slice(-2, -1)[0] });
+  shot('4b-after-mic-stops');
+  await sleep(1000);
+  const direct = page2.run(`return await ${within(12000, native('SpeechRecognition', 'start', { language: 'ta-IN', maxResults: 1, partialResults: false, popup: true }))}`);
+  await sleep(5000);
+  shot('4c-speech-window');
+  note('screen while the speech window is open', sh('adb shell dumpsys activity activities | grep -m1 -E "topResumedActivity|ResumedActivity" || true'));
+  sh('adb shell input keyevent KEYCODE_BACK');
+  note('speech window closed by the patient', await direct);
+  await sleep(1500);
 
   // ---- a patient's sentence goes in, a real record comes out ----
   await page2.run(`document.querySelector('button[aria-label="Stop listening"]')?.click(); document.querySelector('button[aria-label="Type instead"]')?.click(); return 1`);

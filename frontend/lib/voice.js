@@ -9,19 +9,31 @@ const tts = () => import('@capacitor-community/text-to-speech').then((m) => m.Te
 
 let statusPromise = null;
 let current = null; // the natural-voice clip that is playing
+let speechRun = 0; // goes up with every new speech and every stop, so an older reply still loading stays silent
 const clips = new Map(); // "lang|text" -> object URL, so a repeated reply plays at once
+const STATUS_WAIT_MS = 6000;
+const CLIP_WAIT_MS = 12000; // on slow Wi-Fi: after this, use the phone's own voice rather than stay silent
+
+function fetchWithin(ms, url, options) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...options, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+}
 
 export function naturalVoiceAvailable() {
   if (!statusPromise) {
-    statusPromise = fetch(`${API_URL}/tts/status`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    statusPromise = fetchWithin(STATUS_WAIT_MS, `${API_URL}/tts/status`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((r) => (r.ok ? r.json() : { enabled: false }))
       .then((d) => Boolean(d.enabled))
-      .catch(() => false);
+      .catch(() => false)
+      // a bad moment on the network must not lose the natural voice until the app restarts: ask again next time
+      .then((ok) => { if (!ok) statusPromise = null; return ok; });
   }
   return statusPromise;
 }
 
 export function stopSpeaking() {
+  speechRun += 1;
   if (current) { current.pause(); current = null; }
   if (typeof window === 'undefined') return;
   if (isNativeApp()) tts().then((t) => t.stop()).catch(() => {});
@@ -31,11 +43,12 @@ export function stopSpeaking() {
 // Android app: does the phone have a voice for this language? (Most have Google's Tamil, Hindi and English voices.)
 const nativeSupports = (code) => tts().then((t) => t.isLanguageSupported({ lang: code })).then((r) => r.supported).catch(() => false);
 
-async function playNatural(lang, text, onEnd) {
+// Resolves once the clip has started; throws if it cannot play, and the caller then uses a built-in voice
+async function playNatural(lang, text, stillWanted, onEnd) {
   const key = `${lang}|${text}`;
   let url = clips.get(key);
   if (!url) {
-    const res = await fetch(`${API_URL}/tts`, {
+    const res = await fetchWithin(CLIP_WAIT_MS, `${API_URL}/tts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({ text, lang }),
@@ -44,13 +57,20 @@ async function playNatural(lang, text, onEnd) {
     url = URL.createObjectURL(await res.blob());
     clips.set(key, url);
   }
-  stopSpeaking();
+  if (!stillWanted()) return;
   const audio = new Audio(url);
   current = audio;
+  let started = false;
   const done = () => { if (current === audio) current = null; onEnd?.(); };
   audio.onended = done;
-  audio.onerror = done;
-  await audio.play();
+  audio.onerror = () => { if (started) done(); };
+  try {
+    await audio.play();
+    started = true;
+  } catch (err) {
+    if (current === audio) current = null;
+    throw err;
+  }
 }
 
 // ---- built-in voices ----
@@ -98,7 +118,7 @@ function speakBrowser(lang, text, roman, onEnd) {
   });
 }
 
-async function speakNative(lang, text, roman, onEnd) {
+async function speakNative(lang, text, roman, stillWanted, onEnd) {
   let code = `${lang}-IN`;
   let say = text;
   if (!(await nativeSupports(code))) {
@@ -106,15 +126,23 @@ async function speakNative(lang, text, roman, onEnd) {
     code = 'en-IN';
     say = roman;
   }
+  if (!stillWanted()) return;
   try { await (await tts()).speak({ text: say, lang: code, rate: 0.95, pitch: 1.0, volume: 1.0, queueStrategy: 0 }); } catch { /* stopped or no engine */ }
   onEnd?.();
 }
 
 export async function speak(lang, text, roman, onEnd) {
   if (typeof window === 'undefined') return;
+  stopSpeaking();
+  const run = speechRun;
+  const stillWanted = () => run === speechRun;
+  // onEnd means "finished by itself": a voice that was stopped must not start the microphone again
+  const finished = () => { if (stillWanted()) onEnd?.(); };
   if (await naturalVoiceAvailable()) {
-    try { await playNatural(lang, text, onEnd); return; } catch { /* use a built-in voice instead */ }
+    if (!stillWanted()) return;
+    try { await playNatural(lang, text, stillWanted, finished); return; } catch { /* use a built-in voice instead */ }
   }
-  if (isNativeApp()) speakNative(lang, text, roman, onEnd);
-  else speakBrowser(lang, text, roman, onEnd);
+  if (!stillWanted()) return;
+  if (isNativeApp()) speakNative(lang, text, roman, stillWanted, finished);
+  else speakBrowser(lang, text, roman, finished);
 }

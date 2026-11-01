@@ -5,7 +5,7 @@ import { LogoMark } from '@/components/Logo';
 import { ASSISTANT_LANGS, converse, newConversation, quickReplies } from '@/lib/assistant';
 import { refreshAll } from '@/lib/live';
 import { speak, stopSpeaking, voiceQuality } from '@/lib/voice';
-import { createRecognizer, speechInputSupported } from '@/lib/speech';
+import { createRecognizer, isNativeApp, speechInputSupported } from '@/lib/speech';
 
 const store = {
   get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
@@ -13,9 +13,9 @@ const store = {
 };
 
 const UI = {
-  ta: { listening: 'கேட்டுக்கிட்டு இருக்கேன்… பேசுங்க', tap: 'மைக்கை அழுத்தி பேசுங்க', thinking: 'யோசிக்கிறேன்…', type: 'இங்கே டைப் பண்ணலாம்', noMic: 'இந்த பிரவுசர்ல மைக் இல்ல. கீழே டைப் பண்ணுங்க, இல்ல பட்டனை அழுத்துங்க.', denied: 'மைக் அனுமதி இல்ல. பிரவுசர்ல மைக்கை அனுமதிங்க.' },
-  en: { listening: 'Listening… please speak', tap: 'Tap the mic and speak', thinking: 'Thinking…', type: 'Type here instead', noMic: 'This browser has no microphone support. Type below or tap a button.', denied: 'Microphone is blocked. Please allow it in the browser.' },
-  hi: { listening: 'सुन रही हूँ… बोलिए', tap: 'माइक दबाकर बोलिए', thinking: 'सोच रही हूँ…', type: 'यहाँ टाइप करें', noMic: 'इस ब्राउज़र में माइक नहीं है। नीचे टाइप करें या बटन दबाएँ।', denied: 'माइक की अनुमति नहीं है। ब्राउज़र में माइक चालू करें।' },
+  ta: { listening: 'கேட்டுக்கிட்டு இருக்கேன்… பேசுங்க', tap: 'மைக்கை அழுத்தி பேசுங்க', thinking: 'யோசிக்கிறேன்…', type: 'இங்கே டைப் பண்ணலாம்', noMic: 'இந்த பிரவுசர்ல மைக் இல்ல. கீழே டைப் பண்ணுங்க, இல்ல பட்டனை அழுத்துங்க.', denied: 'மைக் அனுமதி இல்ல. பிரவுசர்ல மைக்கை அனுமதிங்க.', deniedApp: 'மைக் அனுமதி இல்ல. போன் Settings → Apps → DiaVita-ல மைக்கை அனுமதிங்க.', nomatch: 'சரியா கேட்கல. மைக்கை அழுத்தி திரும்ப பேசுங்க.', network: 'இன்டர்நெட் சரியில்ல. திரும்ப முயற்சி பண்ணுங்க, இல்ல கீழே டைப் பண்ணுங்க.', failed: 'இந்த போன்ல இந்த மொழிக்கு குரல் பதிவு வேலை செய்யல. கீழே டைப் பண்ணுங்க, இல்ல பட்டனை அழுத்துங்க.' },
+  en: { listening: 'Listening… please speak', tap: 'Tap the mic and speak', thinking: 'Thinking…', type: 'Type here instead', noMic: 'This browser has no microphone support. Type below or tap a button.', denied: 'Microphone is blocked. Please allow it in the browser.', deniedApp: 'Microphone is blocked. Allow it in phone Settings → Apps → DiaVita.', nomatch: 'I could not hear that clearly. Tap the mic and speak again.', network: 'The internet connection is weak. Try again, or type below.', failed: 'Voice input for this language is not working on this phone. Type below or tap a button.' },
+  hi: { listening: 'सुन रही हूँ… बोलिए', tap: 'माइक दबाकर बोलिए', thinking: 'सोच रही हूँ…', type: 'यहाँ टाइप करें', noMic: 'इस ब्राउज़र में माइक नहीं है। नीचे टाइप करें या बटन दबाएँ।', denied: 'माइक की अनुमति नहीं है। ब्राउज़र में माइक चालू करें।', deniedApp: 'माइक की अनुमति नहीं है। फ़ोन Settings → Apps → DiaVita में माइक चालू करें।', nomatch: 'ठीक से सुनाई नहीं दिया। माइक दबाकर फिर बोलिए।', network: 'इंटरनेट कमज़ोर है। फिर कोशिश करें या नीचे टाइप करें।', failed: 'इस फ़ोन पर इस भाषा में आवाज़ पहचान नहीं चल रही। नीचे टाइप करें या बटन दबाएँ।' },
 };
 
 export default function Assistant({ user }) {
@@ -28,11 +28,12 @@ export default function Assistant({ user }) {
   const [readAloud, setReadAloud] = useState(true);
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [typed, setTyped] = useState('');
-  const [micState, setMicState] = useState('ok'); // ok | none | denied
+  const [micState, setMicState] = useState('ok'); // ok | none | denied | nomatch | network | failed
   const [voice, setVoice] = useState(null); // natural | device | basic | none
   const convoRef = useRef(convo);
   const cacheRef = useRef({});
   const recRef = useRef(null);
+  const listenTimer = useRef(null);
   const endRef = useRef(null);
   const settingsRef = useRef({ lang, readAloud });
   convoRef.current = convo;
@@ -50,21 +51,25 @@ export default function Assistant({ user }) {
     return () => { alive = false; window.speechSynthesis?.removeEventListener?.('voiceschanged', check); };
   }, [lang]);
 
-  const stopListening = useCallback(() => { recRef.current?.abort(); recRef.current = null; setListening(false); setInterim(''); }, []);
+  const stopListening = useCallback(() => { clearTimeout(listenTimer.current); recRef.current?.abort(); recRef.current = null; setListening(false); setInterim(''); }, []);
 
   // the browser's speech recognition on websites, Android's own recognizer inside the app (lib/speech.js)
   const startListening = useCallback(() => {
+    clearTimeout(listenTimer.current);
     if (!speechInputSupported()) { setMicState('none'); return; }
     stopSpeaking();
-    recRef.current?.abort();
+    const old = recRef.current;
+    recRef.current = null;
+    old?.abort();
     const rec = createRecognizer(ASSISTANT_LANGS.find((l) => l.code === settingsRef.current.lang).speech, {
       onInterim: (text) => setInterim(text),
       onFinal: (text) => handleRef.current({ text }, text),
-      onError: (kind) => { if (kind === 'denied') setMicState('denied'); },
+      onError: (kind) => { if (recRef.current === rec) setMicState(kind); },
       onEnd: () => {
+        if (recRef.current !== rec) return; // an older session ending must not switch off the current one
+        recRef.current = null;
         setListening(false);
         setInterim('');
-        if (recRef.current === rec) recRef.current = null;
       },
     });
     recRef.current = rec;
@@ -90,7 +95,8 @@ export default function Assistant({ user }) {
     if (r.saved) refreshAll({ area: r.saved });
     // keep the conversation hands-free: listen again after a question, stop after goodbye
     const listenAfter = !r.done && (r.state.step !== 'idle' || r.saved || shown || input.intent === 'hello');
-    const next = () => { if (listenAfter) startListening(); };
+    // a short pause, so the microphone does not catch the end of the reply
+    const next = () => { if (listenAfter) listenTimer.current = setTimeout(startListening, 400); };
     if (read) speak(l, r.reply.text, r.reply.roman, next);
     else next();
   }, [user, startListening]);
@@ -106,7 +112,7 @@ export default function Assistant({ user }) {
     if (!speechInputSupported()) setMicState('none');
     window.speechSynthesis?.getVoices();
     const t0 = setTimeout(() => handleRef.current({ intent: 'hello' }), 250);
-    return () => { clearTimeout(t0); recRef.current?.abort(); stopSpeaking(); };
+    return () => { clearTimeout(t0); clearTimeout(listenTimer.current); const r = recRef.current; recRef.current = null; r?.abort(); stopSpeaking(); };
   }, []);
 
   const changeLang = (code) => {
@@ -222,10 +228,10 @@ export default function Assistant({ user }) {
         <span className="w-11" />
       </div>
       <p className="mt-2 text-center text-sm font-medium text-muted">
-        {micState === 'none' ? t.noMic : micState === 'denied' ? t.denied : listening ? t.listening : t.tap}
+        {listening ? t.listening : micState === 'ok' ? t.tap : micState === 'denied' && isNativeApp() ? t.deniedApp : micState === 'none' ? t.noMic : t[micState]}
       </p>
 
-      {(showKeyboard || micState !== 'ok') && (
+      {(showKeyboard || !['ok', 'nomatch'].includes(micState)) && (
         <form onSubmit={sendTyped} className="mt-3 flex gap-2">
           <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t.type} className="input" aria-label="Type a message" />
           <button className="btn btn-primary shrink-0 px-3" aria-label="Send"><Send size={18} /></button>
